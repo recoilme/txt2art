@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 from diffusers import StableDiffusionXLPipeline
-from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl
+from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl_2p
 from diffusers import EulerAncestralDiscreteScheduler
 import torch, gc
 import base64
@@ -36,9 +36,9 @@ def encode_images_to_base64(images):
     del images  # удалить images
     return json.dumps(encoded_images)
 
-def txt2img(prompt):
+def txt2img(prompt1,prompt2):
     negative_prompt = ""
-    prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt, neg_prompt = negative_prompt)
+    prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
     with torch.no_grad():
         images = pipe(
             width = 832,
@@ -50,9 +50,40 @@ def txt2img(prompt):
             num_inference_steps=26,
             guidance_scale=1.5,
             #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=2
+            num_images_per_prompt=1
         ).images
-        image = pipe(
+
+        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = "", prompt_2 = prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+        image2 = pipe(
+            width = 832,
+            height = 1216,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=prompt_neg_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=26,
+            guidance_scale=1.5,
+            #generator=torch.Generator(device="cuda").seed(),
+            num_images_per_prompt=1
+        ).images
+        images+=image2
+
+        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+        image3 = pipe(
+            width = 1216,
+            height = 832,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=prompt_neg_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=26,
+            guidance_scale=1.5,
+            #generator=torch.Generator(device="cuda").seed(),
+            num_images_per_prompt=1
+        ).images
+        images+=image3
+        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1+prompt2, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+        image4 = pipe(
             width = 1280,
             height = 768,
             prompt_embeds=prompt_embeds,
@@ -64,7 +95,7 @@ def txt2img(prompt):
             #generator=torch.Generator(device="cuda").seed(),
             num_images_per_prompt=1
         ).images
-        images+=image
+        images+=image4
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
         return images
@@ -77,14 +108,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            prompt = body.decode('utf-8')
-            print("Получена строка:", prompt)  # печатаем строку
+            data = json.loads(body.decode('utf-8'))  # парсим JSON из тела запроса
+            prompt1 = data['prompt1']
+            prompt2 = data['prompt2']
+            print("Получены строки:", prompt1, prompt2)  # печатаем строки
+            
     
-            images = txt2img(prompt)
-            json = encode_images_to_base64(images)
-            self.wfile.write(json.encode('utf-8'))
+            images = txt2img(prompt1,prompt2)
+            result = encode_images_to_base64(images)
+            self.wfile.write(result.encode('utf-8'))
             del body
-            del prompt
+            del prompt1
+            del prompt2
         except Exception as e:
             print(f"Ошибка: {e}")
             self.send_response(500)

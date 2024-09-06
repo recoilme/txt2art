@@ -14,9 +14,12 @@ import (
 	"os/signal"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/parakeet-nest/parakeet/completion"
+	"github.com/parakeet-nest/parakeet/llm"
 )
 
 type MsgData struct {
@@ -27,8 +30,10 @@ type MsgData struct {
 }
 
 const (
-	SDHost    = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
-	SDTimeout = 60
+	SDHost      = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
+	SDTimeout   = 60
+	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
+	OllamaModel = "Gemmasutra-9B-v1c-Q4_K_M"
 )
 
 var dataChannel = make(chan *MsgData, 100)
@@ -87,59 +92,96 @@ func producer(ch chan *MsgData, md *MsgData) {
 	}
 	md.msgStatus = msgStatus
 	ch <- md // Non-blocking for the first 2 elements
-	fmt.Println("Produced:", md)
+	//fmt.Println("Produced:", md)
 }
 
 // consumer receives data from the channel
 func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
-		fmt.Println("Consumed:", md)
-
-		imgData, err := imageGet(md.msg.Text)
+		text := md.msg.Text
+		var err error
+		if hasNonEnglish(text) {
+			text, err = simpleJob(fmt.Sprintf("I want you to act as an English translator, spelling corrector and improver. I will speak to you in any language and you will detect the language, translate it and answer in the corrected and improved version of my text, in English. I want you to replace my simplified A0-level words and sentences with more beautiful and elegant, upper level English words and sentences. Keep the meaning same, but make them more literary. I want you to only reply the correction, the improvements and nothing else, do not write explanations. My first sentence is :%s", text))
+			if err != nil {
+				sendErr(md, err)
+				continue
+			}
+		}
+		textEn := text
+		fmt.Println("en:", textEn)
+		text, err = simpleJob(fmt.Sprintf("Convert this text to visual representation, provide detailed and creative descriptions that will inspire unique and interesting image. Keep in mind that you may use a wide range of language and can interpret abstract concepts, so feel free to be as imaginative and descriptive as possible. The more detailed and imaginative your description, the more interesting the resulting image will be. Here is your text: %s", text))
+		if err != nil {
+			sendErr(md, err)
+			continue
+		}
+		if len([]rune(text)) > 1000 {
+			text, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", text))
+			if err != nil {
+				sendErr(md, err)
+				continue
+			}
+		}
+		//text = textEn + ". " + text
+		text = truncateString(text, 1000)
+		imgData, err := imageGet(textEn, text)
+		if err != nil {
+			sendErr(md, err)
+			continue
+		}
 		md.b.DeleteMessage(md.ctx, &bot.DeleteMessageParams{
 			ChatID:    md.msgStatus.Chat.ID,
 			MessageID: md.msgStatus.ID,
 		})
-		if err != nil {
-			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
-				ChatID: md.msg.Chat.ID,
-				Text:   "Ой, ошибка: " + err.Error(),
-				ReplyParameters: &models.ReplyParameters{
-					MessageID: md.msg.ID,
-					ChatID:    md.msg.Chat.ID,
-				},
+
+		medias := make([]models.InputMedia, 0, 4)
+		for i, v := range imgData {
+			caption := textEn
+			switch i {
+			case 0:
+				caption = md.msg.Text
+			case 1:
+				caption = text
+			case 2:
+				caption = textEn
+			case 3:
+				caption = text
+			}
+			medias = append(medias, &models.InputMediaPhoto{
+				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
+				Caption:         caption,
+				MediaAttachment: bytes.NewReader(v),
 			})
-		} else {
-			//TODO:  https://github.com/go-telegram/bot/blob/main/examples/send_media_group/main.go
-			medias := make([]models.InputMedia, 0, 2)
-			for i, v := range imgData {
-				medias = append(medias, &models.InputMediaPhoto{
-					Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
-					Caption:         md.msg.Text,
-					MediaAttachment: bytes.NewReader(v),
-				})
-			}
-
-			params := &bot.SendMediaGroupParams{
-				ChatID: md.msg.Chat.ID,
-				Media:  medias,
-				ReplyParameters: &models.ReplyParameters{
-					MessageID: md.msg.ID,
-					ChatID:    md.msg.Chat.ID,
-				},
-			}
-
-			md.b.SendMediaGroup(md.ctx, params)
 		}
+
+		params := &bot.SendMediaGroupParams{
+			ChatID: md.msg.Chat.ID,
+			Media:  medias,
+			ReplyParameters: &models.ReplyParameters{
+				MessageID: md.msg.ID,
+				ChatID:    md.msg.Chat.ID,
+			},
+		}
+
+		md.b.SendMediaGroup(md.ctx, params)
 	}
 }
 
-func imageGet(prompt string) ([][]byte, error) {
+func imageGet(prompt1, prompt2 string) ([][]byte, error) {
 	client := &http.Client{Timeout: SDTimeout * time.Second}
+	type Prompt struct {
+		Prompt1 string `json:"prompt1"`
+		Prompt2 string `json:"prompt2"`
+	}
 
+	jsonData, _ := json.Marshal(Prompt{
+		Prompt1: prompt1,
+		Prompt2: prompt2,
+	})
+
+	//fmt.Println(string(jsonData))
 	// создаем запрос
-	req, err := http.NewRequest("POST", SDHost, bytes.NewBufferString(prompt))
+	req, err := http.NewRequest("POST", SDHost, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -183,4 +225,51 @@ func imageGet(prompt string) ([][]byte, error) {
 		images = append(images, decodedImage)
 	}
 	return images, nil
+}
+
+func simpleJob(text string) (string, error) {
+	answer, err := completion.Generate(OllamaHost, llm.Query{
+		Model:  OllamaModel,
+		Prompt: text,
+		Options: llm.Options{
+			Temperature: 0.5,
+		},
+	})
+	return answer.Response, err
+}
+
+func sendErr(md *MsgData, err error) {
+	md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+		ChatID: md.msg.Chat.ID,
+		Text:   "Ой, ошибка: " + err.Error(),
+		ReplyParameters: &models.ReplyParameters{
+			MessageID: md.msg.ID,
+			ChatID:    md.msg.Chat.ID,
+		},
+	})
+	md.b.DeleteMessage(md.ctx, &bot.DeleteMessageParams{
+		ChatID:    md.msgStatus.Chat.ID,
+		MessageID: md.msgStatus.ID,
+	})
+}
+func hasNonEnglish(text string) bool {
+	for _, r := range text {
+		if !unicode.IsPrint(r) || !unicode.Is(unicode.Latin, r) {
+			return true
+		}
+	}
+	return false
+}
+
+func truncateString(s string, total int) string {
+	runes := []rune(s)
+	if len(runes) <= total {
+		return s
+	}
+	for i := total; i < len(runes); i++ {
+		if strings.ContainsRune(" !?.;,:\n", runes[i]) {
+			return string(runes[:i])
+		}
+	}
+	return string(runes[:total])
 }
