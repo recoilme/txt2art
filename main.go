@@ -102,7 +102,7 @@ func consumer(ch chan *MsgData) {
 		text := md.msg.Text
 		var err error
 		if hasNonEnglish(text) {
-			text, err = simpleJob(fmt.Sprintf("I want you to act as an English translator, spelling corrector and improver. I will speak to you in any language and you will detect the language, translate it and answer in the corrected and improved version of my text, in English. I want you to replace my simplified A0-level words and sentences with more beautiful and elegant, upper level English words and sentences. Keep the meaning same, but make them more literary. I want you to only reply the correction, the improvements and nothing else, do not write explanations. My first sentence is :%s", text))
+			text, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is :%s", text))
 			if err != nil {
 				sendErr(md, err)
 				continue
@@ -110,10 +110,17 @@ func consumer(ch chan *MsgData) {
 		}
 		textEn := text
 		fmt.Println("en:", textEn)
-		text, err = simpleJob(fmt.Sprintf("Convert this text to visual representation, provide detailed and creative descriptions that will inspire unique and interesting image. Keep in mind that you may use a wide range of language and can interpret abstract concepts, so feel free to be as imaginative and descriptive as possible. The more detailed and imaginative your description, the more interesting the resulting image will be. Here is your text: %s", text))
+		text, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, short and creative description that will inspire unique and interesting image. Here is your text: %s", text))
 		if err != nil {
 			sendErr(md, err)
 			continue
+		}
+		if len([]rune(textEn)) > 1000 {
+			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", text))
+			if err != nil {
+				sendErr(md, err)
+				continue
+			}
 		}
 		if len([]rune(text)) > 1000 {
 			text, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", text))
@@ -124,6 +131,7 @@ func consumer(ch chan *MsgData) {
 		}
 		//text = textEn + ". " + text
 		text = truncateString(text, 1000)
+		textEn = truncateString(textEn, 1000)
 		imgData, err := imageGet(textEn, text)
 		if err != nil {
 			sendErr(md, err)
@@ -139,7 +147,8 @@ func consumer(ch chan *MsgData) {
 			caption := textEn
 			switch i {
 			case 0:
-				caption = md.msg.Text
+				textС := truncateString(md.msg.Text, 1000)
+				caption = textС
 			case 1:
 				caption = text
 			case 2:

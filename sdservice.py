@@ -50,26 +50,12 @@ def txt2img(prompt1,prompt2):
             num_inference_steps=26,
             guidance_scale=1.5,
             #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=1
+            num_images_per_prompt=2
         ).images
 
-        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = "", prompt_2 = prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+
+        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
         image2 = pipe(
-            width = 832,
-            height = 1216,
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            negative_prompt_embeds=prompt_neg_embeds,
-            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=26,
-            guidance_scale=1.5,
-            #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=1
-        ).images
-        images+=image2
-
-        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
-        image3 = pipe(
             width = 1216,
             height = 832,
             prompt_embeds=prompt_embeds,
@@ -79,23 +65,10 @@ def txt2img(prompt1,prompt2):
             num_inference_steps=26,
             guidance_scale=1.5,
             #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=1
+            num_images_per_prompt=2
         ).images
-        images+=image3
-        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1+prompt2, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
-        image4 = pipe(
-            width = 1280,
-            height = 768,
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            negative_prompt_embeds=prompt_neg_embeds,
-            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=26,
-            guidance_scale=1.5,
-            #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=1
-        ).images
-        images+=image4
+        images+=image2
+        
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
         return images
