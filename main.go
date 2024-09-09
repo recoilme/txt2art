@@ -157,7 +157,7 @@ func consumer(ch chan *MsgData) {
 			}
 			params := &bot.SendPaidMediaParams{
 				ChatID:    md.msg.Chat.ID,
-				StarCount: 10,
+				StarCount: 1,
 				Media:     medias,
 				ReplyParameters: &models.ReplyParameters{
 					MessageID: md.msg.ID,
@@ -174,7 +174,7 @@ func consumer(ch chan *MsgData) {
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
 			caption := textRu + ":\n" + textEn + textPrompt
-			caption = truncateString(caption, 1020)
+			caption = truncateString(caption, 876)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
 				Caption:         caption,
