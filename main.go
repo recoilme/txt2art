@@ -33,7 +33,7 @@ const (
 	SDHost      = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
 	SDTimeout   = 60
 	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
-	OllamaModel = "Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 )
 
 var dataChannel = make(chan *MsgData, 100)
@@ -119,6 +119,10 @@ func consumer(ch chan *MsgData) {
 			}
 		}
 		textEn = truncateString(textEn, textEnMax)
+		paid := false
+		if strings.Contains(strings.ToLower(textRu), "майонез") || strings.Contains(strings.ToLower(textEn), "mayonnaise") {
+			paid = true
+		}
 		textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, short and creative visual description. Here is your text: %s", textEn))
 		if err != nil {
 			sendErr(md, err)
@@ -132,7 +136,7 @@ func consumer(ch chan *MsgData) {
 			}
 		}
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
-		textEn = fmt.Sprintf("(%s). ", textEn)
+		textEn = fmt.Sprintf("(%s)\n", textEn)
 		imgData, err := imageGet(textEn, textPrompt)
 		if err != nil {
 			sendErr(md, err)
@@ -143,6 +147,30 @@ func consumer(ch chan *MsgData) {
 			MessageID: md.msgStatus.ID,
 		})
 
+		if paid {
+			medias := make([]models.InputPaidMedia, 0, 4)
+			for i, v := range imgData {
+				medias = append(medias, &models.InputPaidMediaPhoto{
+					Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
+					MediaAttachment: bytes.NewReader(v),
+				})
+			}
+			params := &bot.SendPaidMediaParams{
+				ChatID:    md.msg.Chat.ID,
+				StarCount: 10,
+				Media:     medias,
+				ReplyParameters: &models.ReplyParameters{
+					MessageID: md.msg.ID,
+					ChatID:    md.msg.Chat.ID,
+				},
+			}
+
+			_, err := md.b.SendPaidMedia(md.ctx, params)
+			if err != nil {
+				fmt.Printf("SendPaidMedia: %+v\n", err)
+			}
+			continue
+		}
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
 			caption := textRu + ":\n" + textEn + textPrompt
@@ -152,6 +180,7 @@ func consumer(ch chan *MsgData) {
 				Caption:         caption,
 				MediaAttachment: bytes.NewReader(v),
 			})
+
 		}
 
 		params := &bot.SendMediaGroupParams{
@@ -163,7 +192,10 @@ func consumer(ch chan *MsgData) {
 			},
 		}
 
-		md.b.SendMediaGroup(md.ctx, params)
+		_, err = md.b.SendMediaGroup(md.ctx, params)
+		if err != nil {
+			fmt.Printf("SendMediaGroup: %+v\n", err)
+		}
 	}
 }
 
