@@ -112,7 +112,7 @@ func consumer(ch chan *MsgData) {
 			}
 		}
 		if len([]rune(textEn)) > textEnMax {
-			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", textEn))
+			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textEn))
 			if err != nil {
 				sendErr(md, err)
 				continue
@@ -129,7 +129,7 @@ func consumer(ch chan *MsgData) {
 			continue
 		}
 		if len([]rune(textPrompt)) > (1000 - textEnMax) {
-			textPrompt, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", textPrompt))
+			textPrompt, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textPrompt))
 			if err != nil {
 				sendErr(md, err)
 				continue
