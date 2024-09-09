@@ -135,6 +135,9 @@ func consumer(ch chan *MsgData) {
 				continue
 			}
 		}
+		textPrompt = strings.ReplaceAll(textPrompt, "**Visual Description:**", "")
+		textPrompt = strings.ReplaceAll(textPrompt, "Summary", "")
+
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
 		textEn = fmt.Sprintf("(%s)\n", textEn)
 		imgData, err := imageGet(textEn, textPrompt)

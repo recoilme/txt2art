@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 from diffusers import StableDiffusionXLPipeline
 from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl_2p
+from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl
 from diffusers import EulerAncestralDiscreteScheduler
 import torch, gc
 import base64
@@ -38,7 +39,8 @@ def encode_images_to_base64(images):
 
 def txt2img(prompt1,prompt2):
     negative_prompt = ""
-    prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = "", prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+    prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
+
     with torch.no_grad():
         images = pipe(
             width = 832,
