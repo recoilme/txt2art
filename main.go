@@ -176,7 +176,7 @@ func consumer(ch chan *MsgData) {
 		}
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
-			caption := textRu + ":\n" + textEn + textPrompt
+			caption := textEn + textPrompt
 			caption = truncateString(caption, 876)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
