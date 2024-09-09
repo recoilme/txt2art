@@ -99,40 +99,41 @@ func producer(ch chan *MsgData, md *MsgData) {
 func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
-		text := md.msg.Text
+		textRu := md.msg.Text
+		textEn := textRu
+		textEnMax := 512
+		textPrompt := textRu
 		var err error
-		if hasNonEnglish(text) {
-			text, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is :%s", text))
+		if hasNonEnglish(textRu) {
+			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is :%s", textRu))
 			if err != nil {
 				sendErr(md, err)
 				continue
 			}
 		}
-		textEn := text
-		fmt.Println("en:", textEn)
-		text, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, short and creative description that will inspire unique and interesting image. Here is your text: %s", text))
+		if len([]rune(textEn)) > textEnMax {
+			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", textEn))
+			if err != nil {
+				sendErr(md, err)
+				continue
+			}
+		}
+		textEn = truncateString(textEn, textEnMax)
+		textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, short and creative visual description. Here is your text: %s", textEn))
 		if err != nil {
 			sendErr(md, err)
 			continue
 		}
-		if len([]rune(textEn)) > 1000 {
-			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", text))
+		if len([]rune(textPrompt)) > (1000 - textEnMax) {
+			textPrompt, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", textPrompt))
 			if err != nil {
 				sendErr(md, err)
 				continue
 			}
 		}
-		if len([]rune(text)) > 1000 {
-			text, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text:%s", text))
-			if err != nil {
-				sendErr(md, err)
-				continue
-			}
-		}
-		//text = textEn + ". " + text
-		text = truncateString(text, 1000)
-		textEn = truncateString(textEn, 1000)
-		imgData, err := imageGet(textEn, text)
+		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
+		textEn = fmt.Sprintf("(%s). ", textEn)
+		imgData, err := imageGet(textEn, textPrompt)
 		if err != nil {
 			sendErr(md, err)
 			continue
@@ -144,18 +145,8 @@ func consumer(ch chan *MsgData) {
 
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
-			caption := textEn
-			switch i {
-			case 0:
-				textС := truncateString(md.msg.Text, 1000)
-				caption = textС
-			case 1:
-				caption = text
-			case 2:
-				caption = textEn
-			case 3:
-				caption = text
-			}
+			caption := textRu + ":\n" + textEn + textPrompt
+			caption = truncateString(caption, 1020)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
 				Caption:         caption,
@@ -263,7 +254,8 @@ func sendErr(md *MsgData, err error) {
 }
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
-		if !unicode.IsPrint(r) || !unicode.Is(unicode.Latin, r) {
+		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r)) {
+			//fmt.Println(string(r), r, unicode.Is(unicode.Latin, r))
 			return true
 		}
 	}
