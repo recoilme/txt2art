@@ -8,7 +8,7 @@ import torch, gc
 import base64
 import json
 
-MODEL_PATH = "/workspace/ds/models/colorfulxl_v74-000016.safetensors"
+MODEL_PATH = "/workspace/models/colorfulxl_v74-000012.safetensors"
 pipe = StableDiffusionXLPipeline.from_single_file(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,

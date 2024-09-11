@@ -71,6 +71,17 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
+	if update.Message.Chat.Type != "private" {
+		low := strings.ToLower(update.Message.Text)
+		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") {
+			return
+		} else {
+			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
+				return
+			}
+		}
+	}
+
 	go producer(dataChannel, &MsgData{
 		ctx: ctx,
 		b:   b,
@@ -91,8 +102,7 @@ func producer(ch chan *MsgData, md *MsgData) {
 		return
 	}
 	md.msgStatus = msgStatus
-	ch <- md // Non-blocking for the first 2 elements
-	//fmt.Println("Produced:", md)
+	ch <- md // Non-blocking for the first n elements
 }
 
 // consumer receives data from the channel
@@ -104,6 +114,7 @@ func consumer(ch chan *MsgData) {
 		textEnMax := 512
 		textPrompt := textRu
 		var err error
+
 		if hasNonEnglish(textRu) {
 			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
 			if err != nil {
