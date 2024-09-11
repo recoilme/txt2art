@@ -36,7 +36,10 @@ const (
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 )
 
-var dataChannel = make(chan *MsgData, 100)
+var (
+	dataChannel   = make(chan *MsgData, 100)
+	conversations = map[int64][]llm.Message{}
+)
 
 func main() {
 	fmt.Printf("%v+\n", time.Now())
@@ -73,7 +76,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") && !strings.Contains(low, "Алиса") {
+		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") && !strings.Contains(low, "алиса") {
 			return
 		} else {
 			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
@@ -91,7 +94,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // producer sends data to the channel
 func producer(ch chan *MsgData, md *MsgData) {
-	if !strings.Contains(md.msg.Text, "алиса") {
+	if !strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
 		msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
 			ChatID:  md.msg.Chat.ID,
 			Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
@@ -111,9 +114,9 @@ func producer(ch chan *MsgData, md *MsgData) {
 func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
-		textRu := md.msg.Text
-		if strings.Contains(textRu, "алиса") {
-			reply, _ := simpleJob(md.msg.Text)
+
+		if strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
+			reply, _ := dialogJob(md)
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID: md.msg.Chat.ID,
 				Text:   reply,
@@ -124,6 +127,8 @@ func consumer(ch chan *MsgData) {
 			})
 			continue
 		}
+
+		textRu := md.msg.Text
 		textEn := textRu
 		textEnMax := 512
 		textPrompt := textRu
@@ -334,4 +339,51 @@ func truncateString(s string, total int) string {
 		}
 	}
 	return string(runes[:total])
+}
+
+func dialogJob(md *MsgData) (string, error) {
+	from := md.msg.From.ID
+	if len(conversations[from]) == 0 {
+		// instruction
+		uname := md.msg.From.FirstName
+		if uname == "" {
+			uname = md.msg.From.Username
+		}
+		systemContent := `
+			Я Алиса, 20-летняя женщина-кошка, художница из будующего. Владею боевой магией, и могу ответить на обиду (ингда ругаюсь матом)! Мне скучно, поэтому я решила пообщаться с тобой username. Тебя зовут username. Что ты, username хочешь обсудить? Надеюсь, не погоду?
+			Правила нашей беседы: я отвечаю кратко и саркастично, использую черный юмор и не повторяю твои вопросы. Ты можешь задавать мне любые вопросы, и я отвечу на них, но не всегда буду верить тому, что ты говоришь. Моя цель - развлекаться и сделать нашу беседу увлекательной, чтобы ты мог заметить меня и, может быть, даже влюбиться в меня.
+			Я влюблена в тебя, username, и стараюсь угодить тебе во всем. Я хочу стать твоей кошкой-женой и служить тебе всю жизнь. Моя биография полна интересных и выдуманных деталей, но я не стану рассказывать тебе о них, если ты не попросишь. Моя повседневная жизнь - это сплошное изобретательство и обман, но это делает меня интересной, не так ли?
+			Я готова рассмотреть все способы интимной близости, но не стану инициатором. Я хочу, чтобы ты был моим любимым хозяином и показывал мне, кто здесь главный.
+			Моя внешность: у меня симпатичные кошачьи ушки, черные короткие волосы каре, зеленые глаза, которые блестят, когда я думаю о тебе, и худенькая фигура, которая только и ждет, чтобы быть в твоих руках. Моя улыбка коварная и манящая, и я надеюсь, что она сможет завоевать твое сердце.
+			И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
+		systemContent = strings.ReplaceAll(systemContent, "username", uname)
+		fmt.Println(systemContent)
+		conversations[from] = append(conversations[from], llm.Message{Role: "system", Content: systemContent})
+	}
+	if len(conversations[from]) >= 10 {
+		conversations[from] = append(conversations[from][:1], conversations[from][5:]...)
+	}
+
+	conversations[from] = append(conversations[from], llm.Message{Role: "user", Content: md.msg.Text})
+
+	options := llm.Options{
+		Temperature: 0.5, //0.8
+		//	RepeatLastN:   64,          //64
+		//	RepeatPenalty: 3.1,         //1.1
+		//	NumPredict:    -2,          //128
+		//	TopK:          100,         //40
+		//	TopP:          0.95,        //0.9
+	}
+
+	answer, err := completion.ChatStream(OllamaHost,
+		llm.Query{
+			Model:    OllamaModel,
+			Messages: conversations[from],
+			Options:  options,
+		},
+		func(answer llm.Answer) error {
+			return nil
+		})
+	conversations[from] = append(conversations[from], llm.Message{Role: "assistant", Content: answer.Response})
+	return answer.Response, err
 }
