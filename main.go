@@ -33,7 +33,7 @@ const (
 	SDHost      = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
 	SDTimeout   = 60
 	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
-	OllamaModel = "VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 )
 
 var dataChannel = make(chan *MsgData, 100)
@@ -105,7 +105,7 @@ func consumer(ch chan *MsgData) {
 		textPrompt := textRu
 		var err error
 		if hasNonEnglish(textRu) {
-			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is :%s", textRu))
+			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
 			if err != nil {
 				sendErr(md, err)
 				continue
@@ -123,7 +123,7 @@ func consumer(ch chan *MsgData) {
 		if strings.Contains(strings.ToLower(textRu), "майонез") || strings.Contains(strings.ToLower(textEn), "mayonnaise") {
 			paid = true
 		}
-		textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, short and creative visual description. Here is your text: %s", textEn))
+		textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, creative and detailed visual description. Here is your text: %s", textEn))
 		if err != nil {
 			sendErr(md, err)
 			continue
@@ -137,6 +137,7 @@ func consumer(ch chan *MsgData) {
 		}
 		textPrompt = strings.ReplaceAll(textPrompt, "**Visual Description:**", "")
 		textPrompt = strings.ReplaceAll(textPrompt, "Summary", "")
+		textPrompt = strings.ReplaceAll(textPrompt, "**:**", "")
 
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
 		textEn = fmt.Sprintf("(%s)\n", textEn)
