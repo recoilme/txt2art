@@ -389,6 +389,6 @@ func dialogJob(md *MsgData) (string, error) {
 		},
 	)
 	fmt.Println("ans", answer, answer.Response, err)
-	conversations[from] = append(conversations[from], llm.Message{Role: "assistant", Content: answer.Response})
-	return answer.Response, err
+	conversations[from] = append(conversations[from], llm.Message{Role: "assistant", Content: answer.Message.Content})
+	return answer.Message.Content, err
 }
