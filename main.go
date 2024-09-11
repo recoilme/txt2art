@@ -73,7 +73,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") {
+		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") && !strings.Contains(low, "Алиса") {
 			return
 		} else {
 			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
@@ -91,17 +91,19 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // producer sends data to the channel
 func producer(ch chan *MsgData, md *MsgData) {
+	if !strings.Contains(md.msg.Text, "алиса") {
+		msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
+			ChatID:  md.msg.Chat.ID,
+			Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
+		})
 
-	msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-		ChatID:  md.msg.Chat.ID,
-		Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-	})
+		if err != nil {
+			fmt.Println("Err:", err)
+			return
+		}
 
-	if err != nil {
-		fmt.Println("Err:", err)
-		return
+		md.msgStatus = msgStatus
 	}
-	md.msgStatus = msgStatus
 	ch <- md // Non-blocking for the first n elements
 }
 
@@ -110,6 +112,18 @@ func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
 		textRu := md.msg.Text
+		if strings.Contains(textRu, "алиса") {
+			reply, _ := simpleJob(md.msg.Text)
+			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+				ChatID: md.msg.Chat.ID,
+				Text:   reply,
+				ReplyParameters: &models.ReplyParameters{
+					MessageID: md.msg.ID,
+					ChatID:    md.msg.Chat.ID,
+				},
+			})
+			continue
+		}
 		textEn := textRu
 		textEnMax := 512
 		textPrompt := textRu
