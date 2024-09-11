@@ -116,7 +116,10 @@ func consumer(ch chan *MsgData) {
 		md := <-ch
 
 		if strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
-			reply, _ := dialogJob(md)
+			reply, err := dialogJob(md)
+			if err != nil {
+				fmt.Println(err)
+			}
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID: md.msg.Chat.ID,
 				Text:   reply,
