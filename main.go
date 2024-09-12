@@ -117,6 +117,7 @@ func consumer(ch chan *MsgData) {
 		md := <-ch
 
 		reply, err := dialogJob(md)
+		fmt.Println("reply", reply)
 		if err != nil {
 			sendErr(md, err)
 			continue
@@ -135,19 +136,20 @@ func consumer(ch chan *MsgData) {
 		}
 
 		textDraw := getDraw(reply)
-		if textDraw != "" {
-			msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-				ChatID:  md.msg.Chat.ID,
-				Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-			})
-
-			if err != nil {
-				fmt.Println("Err:", err)
-				return
-			}
-
-			md.msgStatus = msgStatus
+		if textDraw == "" {
+			continue
 		}
+		msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
+			ChatID:  md.msg.Chat.ID,
+			Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
+		})
+
+		if err != nil {
+			fmt.Println("Err:", err)
+			continue
+		}
+
+		md.msgStatus = msgStatus
 
 		textRu := textDraw
 		textEn := textRu
