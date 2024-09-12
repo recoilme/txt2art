@@ -76,7 +76,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "нарисуй") && !strings.Contains(low, "draw") && !strings.Contains(low, "алиса") {
+		if !strings.Contains(low, "алиса") {
 			return
 		} else {
 			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
@@ -94,19 +94,20 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // producer sends data to the channel
 func producer(ch chan *MsgData, md *MsgData) {
-	if !strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
-		msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-			ChatID:  md.msg.Chat.ID,
-			Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-		})
+	/*
+		if !strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
+			msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
+				ChatID:  md.msg.Chat.ID,
+				Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
+			})
 
-		if err != nil {
-			fmt.Println("Err:", err)
-			return
-		}
+			if err != nil {
+				fmt.Println("Err:", err)
+				return
+			}
 
-		md.msgStatus = msgStatus
-	}
+			md.msgStatus = msgStatus
+		}*/
 	ch <- md // Non-blocking for the first n elements
 }
 
@@ -115,27 +116,44 @@ func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
 
-		if strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
-			reply, err := dialogJob(md)
-			if err != nil {
-				fmt.Println(err)
-			}
-			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
-				ChatID: md.msg.Chat.ID,
-				Text:   reply,
-				ReplyParameters: &models.ReplyParameters{
-					MessageID: md.msg.ID,
-					ChatID:    md.msg.Chat.ID,
-				},
-			})
+		reply, err := dialogJob(md)
+		if err != nil {
+			sendErr(md, err)
 			continue
 		}
 
-		textRu := md.msg.Text
+		_, err = md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+			ChatID: md.msg.Chat.ID,
+			Text:   reply,
+			ReplyParameters: &models.ReplyParameters{
+				MessageID: md.msg.ID,
+				ChatID:    md.msg.Chat.ID,
+			},
+		})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		textDraw := getDraw(reply)
+		if textDraw != "" {
+			msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
+				ChatID:  md.msg.Chat.ID,
+				Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
+			})
+
+			if err != nil {
+				fmt.Println("Err:", err)
+				return
+			}
+
+			md.msgStatus = msgStatus
+		}
+
+		textRu := textDraw
 		textEn := textRu
 		textEnMax := 512
 		textPrompt := textRu
-		var err error
+		//var err error
 
 		if hasNonEnglish(textRu) {
 			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
@@ -388,7 +406,31 @@ func dialogJob(md *MsgData) (string, error) {
 			return nil
 		},
 	)
-	fmt.Println("ans", answer, answer.Response, err)
+	//fmt.Println("ans", answer, answer.Response, err)
 	conversations[from] = append(conversations[from], llm.Message{Role: "assistant", Content: answer.Message.Content})
 	return answer.Message.Content, err
+}
+
+func getDraw(text string) string {
+	draw := ""
+	if strings.Contains(text, "draw:") {
+		draw = strings.Split(text, "draw:")[1]
+	}
+	if draw == "" && strings.Contains(text, "draw") {
+		draw = strings.Split(text, "draw")[1]
+	}
+	draw = strings.TrimSpace(draw)
+	sentences := strings.Split(draw, "\n")
+	if len(sentences) > 1 {
+		lenAll := len(draw)
+		draw = ""
+		for _, sentence := range sentences {
+			draw += sentence
+			if len(draw) > lenAll%10 {
+				break
+			}
+		}
+	}
+	draw = strings.TrimSpace(draw)
+	return draw
 }
