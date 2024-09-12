@@ -403,7 +403,7 @@ func dialogJob(md *MsgData) (string, error) {
 		conversations[from] = append(conversations[from], llm.Message{Role: "system", Content: systemContent + drawContent})
 	}
 	if len(conversations[from]) >= 10 {
-		conversations[from] = append(conversations[from][:1], conversations[from][5:]...)
+		conversations[from] = append(conversations[from][:2], conversations[from][8:]...)
 	}
 
 	conversations[from] = append(conversations[from], llm.Message{Role: "user", Content: md.msg.Text})

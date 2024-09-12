@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -29,4 +30,21 @@ func TestExtrDraw(t *testing.T) {
 	if draw != "a majestic brown bear standing in the forest clearing with sunlight streaming through trees and wildflowers blooming at its feet 🌲🐻☀️🌼" {
 		t.Errorf("draw incorrect:%s", draw)
 	}
+}
+
+func TestExtrSlice(t *testing.T) {
+	s := make([]int, 0)
+	s = append(s, 0)
+	s = append(s, 1)
+	s = append(s, 2)
+	s = append(s, 3)
+	s = append(s, 4)
+	s = append(s, 5)
+	s = append(s, 6)
+	s = append(s, 7)
+	s = append(s, 8)
+
+	s = append(s[:2], s[6:]...)
+	fmt.Println(s)
+
 }
