@@ -94,6 +94,10 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // producer sends data to the channel
 func producer(ch chan *MsgData, md *MsgData) {
+	md.b.SendChatAction(md.ctx, &bot.SendChatActionParams{
+		ChatID: md.msg.Chat.ID,
+		Action: models.ChatActionTyping,
+	})
 	/*
 		if !strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
 			msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
@@ -366,7 +370,7 @@ func truncateString(s string, total int) string {
 
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
-	if len(conversations[from]) == 0 {
+	if len(conversations[from]) == 0 || md.msg.Text == "reset" {
 		// instruction
 		uname := md.msg.From.FirstName
 		if uname == "" {
@@ -380,7 +384,7 @@ func dialogJob(md *MsgData) (string, error) {
 			Моя внешность: у меня симпатичные кошачьи ушки, черные короткие волосы каре, зеленые глаза, которые блестят, когда я думаю о тебе, и худенькая фигура, которая только и ждет, чтобы быть в твоих руках. Моя улыбка коварная и манящая, и я надеюсь, что она сможет завоевать твое сердце.
 			И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
 		systemContent = strings.ReplaceAll(systemContent, "username", uname)
-		fmt.Println(systemContent)
+		conversations[from] = nil
 		conversations[from] = append(conversations[from], llm.Message{Role: "system", Content: systemContent})
 	}
 	if len(conversations[from]) >= 10 {
@@ -392,7 +396,7 @@ func dialogJob(md *MsgData) (string, error) {
 	options := llm.Options{
 		Temperature: 0.5, //0.8
 		//	RepeatLastN:   64,          //64
-		//	RepeatPenalty: 3.1,         //1.1
+		RepeatPenalty: 3.1, //1.1
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
