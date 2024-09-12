@@ -370,7 +370,7 @@ func truncateString(s string, total int) string {
 
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
-	if len(conversations[from]) == 0 || md.msg.Text == "reset" {
+	if len(conversations[from]) == 0 || md.msg.Text == "алиса reset" {
 		// instruction
 		uname := md.msg.From.FirstName
 		if uname == "" {
