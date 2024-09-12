@@ -46,7 +46,7 @@ func TestExtrSlice(t *testing.T) {
 	s = append(s, 9)
 	s = append(s, 10)
 
-	s = append(s[:3], s[9:]...)
+	s = append(s[:1], s[9:]...)
 	fmt.Println(s)
 
 }
