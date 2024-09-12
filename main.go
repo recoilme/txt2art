@@ -461,6 +461,5 @@ func getDraw(text string) string {
 		}
 	}
 	draw = strings.TrimSpace(draw)
-	fmt.Println("draw-", draw)
 	return draw
 }
