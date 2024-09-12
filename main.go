@@ -213,8 +213,9 @@ func consumerImg(ch chan *MsgData) {
 		}
 
 		params := &bot.SendMediaGroupParams{
-			ChatID: md.msg.Chat.ID,
-			Media:  medias,
+			ChatID:              md.msg.Chat.ID,
+			Media:               medias,
+			DisableNotification: true,
 			ReplyParameters: &models.ReplyParameters{
 				MessageID: md.msg.ID,
 				ChatID:    md.msg.Chat.ID,
@@ -240,8 +241,9 @@ func consumer(ch chan *MsgData) {
 		}
 
 		replMsg, err := md.b.SendMessage(md.ctx, &bot.SendMessageParams{
-			ChatID: md.msg.Chat.ID,
-			Text:   reply,
+			ChatID:              md.msg.Chat.ID,
+			Text:                reply,
+			DisableNotification: true,
 			ReplyParameters: &models.ReplyParameters{
 				MessageID: md.msg.ID,
 				ChatID:    md.msg.Chat.ID,
@@ -338,8 +340,9 @@ func simpleJob(text string) (string, error) {
 
 func sendErr(md *MsgData, err error) {
 	md.b.SendMessage(md.ctx, &bot.SendMessageParams{
-		ChatID: md.msg.Chat.ID,
-		Text:   "Ой, ошибка: " + err.Error(),
+		ChatID:              md.msg.Chat.ID,
+		Text:                "Ой, ошибка: " + err.Error(),
+		DisableNotification: true,
 		ReplyParameters: &models.ReplyParameters{
 			MessageID: md.msg.ID,
 			ChatID:    md.msg.Chat.ID,
