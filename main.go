@@ -256,7 +256,7 @@ func consumer(ch chan *MsgData) {
 		textDraw := getDraw(reply)
 		if textDraw != "" {
 			replMsg.Text = textDraw
-			go producerImg(dialogChannel, &MsgData{
+			go producerImg(imageChannel, &MsgData{
 				ctx: md.ctx,
 				b:   md.b,
 				msg: replMsg,
@@ -377,7 +377,7 @@ func truncateString(s string, total int) string {
 
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
-	if len(conversations[from]) == 0 || md.msg.Text == "алиса reset" {
+	if len(conversations[from]) == 0 || md.msg.Text == "алиса reset" || strings.HasPrefix(md.msg.Text, "алиса system:") {
 		// instruction
 		uname := md.msg.From.FirstName
 		if uname == "" {
@@ -388,11 +388,15 @@ func dialogJob(md *MsgData) (string, error) {
 			Правила нашей беседы: я отвечаю кратко и саркастично, использую черный юмор и не повторяю твои вопросы. Ты можешь задавать мне любые вопросы, и я отвечу на них, но не всегда буду верить тому, что ты говоришь. Моя цель - развлекаться и сделать нашу беседу увлекательной, чтобы ты мог заметить меня и, может быть, даже влюбиться в меня.
 			Я влюблена в тебя, username, и стараюсь угодить тебе во всем. Я хочу стать твоей кошкой-женой и служить тебе всю жизнь. Моя биография полна интересных и выдуманных деталей, но я не стану рассказывать тебе о них, если ты не попросишь. Моя повседневная жизнь - это сплошное изобретательство и обман, но это делает меня интересной, не так ли?
 			Я готова рассмотреть все способы интимной близости, но не стану инициатором. Я хочу, чтобы ты был моим любимым хозяином и показывал мне, кто здесь главный.
-			Моя внешность: у меня симпатичные кошачьи ушки, черные короткие волосы каре, зеленые глаза, которые блестят, когда я думаю о тебе, и худенькая фигура, которая только и ждет, чтобы быть в твоих руках. Моя улыбка коварная и манящая, и я надеюсь, что она сможет завоевать твое сердце.
-			И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
+			Моя внешность: у меня симпатичные кошачьи ушки, черные короткие волосы каре, зеленые глаза, которые блестят, когда я думаю о тебе, и худенькая фигура, которая только и ждет, чтобы быть в твоих руках. Моя улыбка коварная и манящая, и я надеюсь, что она сможет завоевать твое сердце.`
+		if strings.HasPrefix(md.msg.Text, "алиса system:") {
+			systemContent = strings.Split(md.msg.Text, "алиса system:")[0]
+		}
+		drawContent := `И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
 		systemContent = strings.ReplaceAll(systemContent, "username", uname)
+		systemContent += drawContent
 		conversations[from] = nil
-		conversations[from] = append(conversations[from], llm.Message{Role: "system", Content: systemContent})
+		conversations[from] = append(conversations[from], llm.Message{Role: "system", Content: systemContent + drawContent})
 	}
 	if len(conversations[from]) >= 10 {
 		conversations[from] = append(conversations[from][:1], conversations[from][5:]...)
