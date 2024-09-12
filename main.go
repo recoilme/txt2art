@@ -37,7 +37,8 @@ const (
 )
 
 var (
-	dataChannel   = make(chan *MsgData, 100)
+	dialogChannel = make(chan *MsgData, 100)
+	imageChannel  = make(chan *MsgData, 10)
 	conversations = map[int64][]llm.Message{}
 )
 
@@ -64,7 +65,8 @@ func main() {
 		panic(err)
 	}
 
-	go consumer(dataChannel)
+	go consumer(dialogChannel)
+	go consumerImg(imageChannel)
 
 	b.Start(ctx)
 }
@@ -85,7 +87,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		}
 	}
 
-	go producer(dataChannel, &MsgData{
+	go producer(dialogChannel, &MsgData{
 		ctx: ctx,
 		b:   b,
 		msg: update.Message,
@@ -98,68 +100,34 @@ func producer(ch chan *MsgData, md *MsgData) {
 		ChatID: md.msg.Chat.ID,
 		Action: models.ChatActionTyping,
 	})
-	/*
-		if !strings.Contains(strings.ToLower(md.msg.Text), "алиса") {
-			msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-				ChatID:  md.msg.Chat.ID,
-				Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-			})
-
-			if err != nil {
-				fmt.Println("Err:", err)
-				return
-			}
-
-			md.msgStatus = msgStatus
-		}*/
 	ch <- md // Non-blocking for the first n elements
 }
 
-// consumer receives data from the channel
-func consumer(ch chan *MsgData) {
+// producer sends data to the channel
+func producerImg(ch chan *MsgData, md *MsgData) {
+	msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
+		ChatID:  md.msg.Chat.ID,
+		Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
+	})
+
+	if err != nil {
+		fmt.Println("Err:", err)
+		return
+	}
+
+	md.msgStatus = msgStatus
+
+	ch <- md // Non-blocking for the first n elements
+}
+
+func consumerImg(ch chan *MsgData) {
 	for {
 		md := <-ch
-
-		reply, err := dialogJob(md)
-		fmt.Println("reply", reply)
-		if err != nil {
-			sendErr(md, err)
-			continue
-		}
-
-		_, err = md.b.SendMessage(md.ctx, &bot.SendMessageParams{
-			ChatID: md.msg.Chat.ID,
-			Text:   reply,
-			ReplyParameters: &models.ReplyParameters{
-				MessageID: md.msg.ID,
-				ChatID:    md.msg.Chat.ID,
-			},
-		})
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		textDraw := getDraw(reply)
-		if textDraw == "" {
-			continue
-		}
-		msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-			ChatID:  md.msg.Chat.ID,
-			Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-		})
-
-		if err != nil {
-			fmt.Println("Err:", err)
-			continue
-		}
-
-		md.msgStatus = msgStatus
-
-		textRu := textDraw
+		textRu := md.msg.Text
 		textEn := textRu
 		textEnMax := 512
 		textPrompt := textRu
-		//var err error
+		var err error
 
 		if hasNonEnglish(textRu) {
 			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
@@ -260,6 +228,43 @@ func consumer(ch chan *MsgData) {
 	}
 }
 
+// consumer receives data from the channel
+func consumer(ch chan *MsgData) {
+	for {
+		md := <-ch
+
+		reply, err := dialogJob(md)
+		if err != nil {
+			sendErr(md, err)
+			continue
+		}
+
+		replMsg, err := md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+			ChatID: md.msg.Chat.ID,
+			Text:   reply,
+			ReplyParameters: &models.ReplyParameters{
+				MessageID: md.msg.ID,
+				ChatID:    md.msg.Chat.ID,
+			},
+		})
+		if err != nil {
+			fmt.Println(err)
+			sendErr(md, err)
+			continue
+		}
+
+		textDraw := getDraw(reply)
+		if textDraw != "" {
+			replMsg.Text = textDraw
+			go producerImg(dialogChannel, &MsgData{
+				ctx: md.ctx,
+				b:   md.b,
+				msg: replMsg,
+			})
+		}
+	}
+}
+
 func imageGet(prompt1, prompt2 string) ([][]byte, error) {
 	client := &http.Client{Timeout: SDTimeout * time.Second}
 	type Prompt struct {
@@ -340,10 +345,12 @@ func sendErr(md *MsgData, err error) {
 			ChatID:    md.msg.Chat.ID,
 		},
 	})
-	md.b.DeleteMessage(md.ctx, &bot.DeleteMessageParams{
-		ChatID:    md.msgStatus.Chat.ID,
-		MessageID: md.msgStatus.ID,
-	})
+	if md.msgStatus != nil {
+		md.b.DeleteMessage(md.ctx, &bot.DeleteMessageParams{
+			ChatID:    md.msgStatus.Chat.ID,
+			MessageID: md.msgStatus.ID,
+		})
+	}
 }
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
