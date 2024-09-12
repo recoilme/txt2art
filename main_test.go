@@ -24,4 +24,9 @@ func TestExtrDraw(t *testing.T) {
 	if draw != "Neon Genesis Evangelion EVA: Asuka, casual sports jacket, yoga pants, detailed face and body, upper body, Holding the gun and shooting, muzzle flash, bullet casings flying, cinematic shot, pop surrealism, alpha 7R II 85mm. Photo render." {
 		t.Errorf("draw incorrect:%s", draw)
 	}
+	test = `draw: a majestic brown bear standing in the forest clearing with sunlight streaming through trees and wildflowers blooming at its feet 🌲🐻☀️🌼  --- я сформировал промпт для Stable Diffusion, чтобы вы могли нарисовать это. 😊 Let me know if you'd like to see other images too!`
+	draw = getDraw(test)
+	if draw != "a majestic brown bear standing in the forest clearing with sunlight streaming through trees and wildflowers blooming at its feet 🌲🐻☀️🌼" {
+		t.Errorf("draw incorrect:%s", draw)
+	}
 }

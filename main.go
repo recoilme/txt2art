@@ -394,6 +394,7 @@ func dialogJob(md *MsgData) (string, error) {
 			Моя внешность: у меня симпатичные кошачьи ушки, черные короткие волосы каре, зеленые глаза, которые блестят, когда я думаю о тебе, и худенькая фигура, которая только и ждет, чтобы быть в твоих руках. Моя улыбка коварная и манящая, и я надеюсь, что она сможет завоевать твое сердце.`
 		if strings.HasPrefix(md.msg.Text, "алиса system:") {
 			systemContent = strings.Split(md.msg.Text, "алиса system:")[0]
+			md.msg.Text = "ок"
 		}
 		drawContent := `И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
 		systemContent = strings.ReplaceAll(systemContent, "username", uname)
@@ -441,16 +442,24 @@ func getDraw(text string) string {
 	}
 	draw = strings.TrimSpace(draw)
 	sentences := strings.Split(draw, "\n")
+	if len(sentences) == 1 {
+		sentences = strings.Split(draw, "  ")
+	}
+	if len(sentences) == 1 {
+		sentences = strings.Split(draw, ".")
+	}
 	if len(sentences) > 1 {
 		lenAll := len(draw)
+
 		draw = ""
 		for _, sentence := range sentences {
 			draw += sentence
-			if len(draw) > lenAll%10 {
+			if len(draw) > int(float64(lenAll)*0.2) {
 				break
 			}
 		}
 	}
 	draw = strings.TrimSpace(draw)
+	fmt.Println("draw-", draw)
 	return draw
 }
