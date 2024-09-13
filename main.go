@@ -16,6 +16,7 @@ import (
 	"time"
 	"unicode"
 
+	tg_md2html "github.com/PaulSonOfLars/gotg_md2html"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/parakeet-nest/parakeet/completion"
@@ -240,9 +241,12 @@ func consumer(ch chan *MsgData) {
 			continue
 		}
 
+		htmlText := tg_md2html.MD2HTML(reply)
+
 		replMsg, err := md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 			ChatID:              md.msg.Chat.ID,
-			Text:                reply,
+			Text:                htmlText,
+			ParseMode:           models.ParseModeHTML,
 			DisableNotification: true,
 			ReplyParameters: &models.ReplyParameters{
 				MessageID: md.msg.ID,

@@ -58,6 +58,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
+github.com/PaulSonOfLars/gotg_md2html v0.0.0-20240605215313-a6fdd2445f54 h1:zkXZYemy5g4pLYVqGO8KFSkASsLH0coWWCwIzXMuXU8=
+github.com/PaulSonOfLars/gotg_md2html v0.0.0-20240605215313-a6fdd2445f54/go.mod h1:1xBfukLsM8dyQska4tSfxWmbRWhYGBzTjLLy8vRG4wc=
 github.com/PaulSonOfLars/gotgbot v1.0.0 h1:21iAWJHDm3kp2Lulkg9USpPmgPrVrNQAEUrQVVJb7q8=
 github.com/PaulSonOfLars/gotgbot v1.0.0/go.mod h1:MEPPNkHZkNgevbRyW5py9Bt3BZf6HTKqbXbsfxuyDQ0=
 github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.29 h1:5/K8zgmoKnsegt6h9XvFIJAGxbHVWOEwSpjdjaySf6A=
@@ -367,6 +369,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+github.com/zavitkov/tg-markdown v1.0.1 h1:0uc5O35LSWKPWBl33uyS4cuvZ5BRkI8Ziy4FRxm2Opk=
+github.com/zavitkov/tg-markdown v1.0.1/go.mod h1:qmDK1+oeT+S23MZTzt3Rm1jVYHtCxmu0sfZh0pj7jMA=
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
 go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3YSwc9/Ac1g=
 go.etcd.io/etcd/client/v2 v2.305.4/go.mod h1:Ud+VUwIi9/uQHOMA+4ekToJ12lTxlv0zB/+DHwTGEbU=

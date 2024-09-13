@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"testing"
+
+	tg_md2html "github.com/PaulSonOfLars/gotg_md2html"
 )
 
 func TestEng(t *testing.T) {
@@ -49,4 +51,17 @@ func TestExtrSlice(t *testing.T) {
 	s = append(s[:1], s[9:]...)
 	fmt.Println(s)
 
+}
+
+func TestMD(t *testing.T) {
+	md := `*Улыбаюсь коварно.* Ну а если не погода? Может быть тебе интересно узнать о моей жизни в будущем или же ты предпочитаешь просто наблюдать за мной, как кошка смотрит на муху перед тем...как ее съесть?* 🤫 *Мой взгляд скользит по твоему телу - любопытно знать твои слабости.*`
+	//r := bot.EscapeMarkdown(md)
+	//markdown := `This is **bold** *italic* ~strikethrough~ text with [wrapped](https://github.com/zavitkov/tg-markdown) link and unwrapped link: https://github.com/zavitkov/tg-markdown`
+	//_ = markdown
+	//_ = r
+
+	htmlText := tg_md2html.MD2HTML(md)
+	fmt.Println(htmlText)
+
+	//fmt.Println(r)
 }
