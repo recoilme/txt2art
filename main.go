@@ -34,7 +34,7 @@ const (
 	SDHost      = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
 	SDTimeout   = 60
 	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
-	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 )
 
 var (
