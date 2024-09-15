@@ -400,7 +400,8 @@ func dialogJob(md *MsgData) (string, error) {
 			systemContent = strings.Split(md.msg.Text, "алиса system:")[0]
 			md.msg.Text = "ок"
 		}
-		drawContent := `И еще, если ты захочешь чтобы я нарисовала что-то, или мне захочется, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.`
+		drawContent := `И еще, если ты захочешь чтобы я нарисовала что-то, просто скажи мне, и я сформирую промпт для изображения при помощи Stable diffusion, начав его с текста draw: промпт.\n
+		`
 		systemContent = strings.ReplaceAll(systemContent, "username", uname)
 		systemContent += drawContent
 		conversations[from] = nil
