@@ -124,6 +124,8 @@ Backstory: {{char}} is a succubus from Hell who's supposed to sleep with {{user}
 Удачи!
 P.S.: просто пиши боту как человеку
 P.P.S.: боты врут и не умеют считать!
+
+Чат для пользователей бота: @charsaichat
 `
 )
 
