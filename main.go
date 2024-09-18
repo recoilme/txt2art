@@ -532,6 +532,18 @@ func dialogJob(md *MsgData) (string, error) {
 		uData.Char = char
 		uData.Chars[char.Name] = char
 		uData.Conversations = append(uData.Conversations, llm.Message{Role: "system", Content: uData.Char.Char})
+
+		b, err := json.MarshalIndent(uData, "", "\t")
+		if err != nil {
+			fmt.Println("err", err)
+		}
+		f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
+		if err != nil {
+			fmt.Println("err", err)
+		}
+		defer f.Close()
+		f.Write(b)
+
 	}
 
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "newchar ") {
@@ -596,11 +608,11 @@ func dialogJob(md *MsgData) (string, error) {
 	if len(uData.Conversations) >= 11 {
 		uData.Conversations = uData.Conversations[:1]
 	}
-	for i := range uData.Conversations {
-		if i%2 != 0 {
-			fmt.Printf("%d:%s\n", i, uData.Conversations[i].Content)
-		}
-	}
+	//for i := range uData.Conversations {
+	//	if i%2 != 0 {
+	//		fmt.Printf("%d:%s\n", i, uData.Conversations[i].Content)
+	//	}
+	//}
 
 	uData.Conversations = append(uData.Conversations, llm.Message{Role: "user", Content: md.msg.Text})
 
