@@ -560,7 +560,7 @@ func dialogJob(md *MsgData) (string, error) {
 		uData.Chars[char.Name] = char
 
 		userData[from] = uData
-		return "New char:" + userData[from].Char.Name + "!\n\n" + userData[from].Char.Char + "\n\nTemplate:\n```" + userData[from].Char.Template + "```", nil
+		return "New char:" + userData[from].Char.Name + "\n\nTemplate:\n```" + userData[from].Char.Template + "```", nil
 	}
 	charNames := make([]string, 0)
 	if uData.Chars != nil {
