@@ -21,6 +21,7 @@ import (
 	"github.com/go-telegram/bot/models"
 	"github.com/parakeet-nest/parakeet/completion"
 	"github.com/parakeet-nest/parakeet/llm"
+	"github.com/recoilme/graceful"
 )
 
 type MsgData struct {
@@ -157,24 +158,35 @@ func main() {
 
 	go consumer(dialogChannel)
 	go consumerImg(imageChannel)
+	quit := make(chan os.Signal, 1)
+	graceful.Unignore(quit, fallback, graceful.Terminate...)
 
 	b.Start(ctx)
-	fmt.Println("stop")
+}
+
+func fallback() error {
+	fmt.Println("fallback")
 	for i := range userData {
-		uData := userData[i]
-		uData.Conversations = uData.Conversations[:1]
-		b, err := json.MarshalIndent(uData, "", "\t")
-		if err != nil {
-			fmt.Println("err", err)
-			continue
-		}
-		f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
-		if err != nil {
-			fmt.Println("err", err)
-			continue
-		}
-		f.Write(b)
-		f.Close()
+		saveUData(userData[i])
+	}
+	fmt.Println("stop")
+	return nil
+}
+
+func saveUData(uData UserData) {
+	uData.Conversations = uData.Conversations[:1]
+	b, err := json.MarshalIndent(uData, "", "\t")
+	if err != nil {
+		fmt.Println("err MarshalIndent", err)
+	}
+	f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
+	if err != nil {
+		fmt.Println("err Create", err)
+	}
+	defer f.Close()
+	_, err = f.Write(b)
+	if err != nil {
+		fmt.Println("err Write", err)
 	}
 }
 
@@ -533,17 +545,7 @@ func dialogJob(md *MsgData) (string, error) {
 		uData.Chars[char.Name] = char
 		uData.Conversations = append(uData.Conversations, llm.Message{Role: "system", Content: uData.Char.Char})
 
-		b, err := json.MarshalIndent(uData, "", "\t")
-		if err != nil {
-			fmt.Println("err", err)
-		}
-		f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
-		if err != nil {
-			fmt.Println("err", err)
-		}
-		defer f.Close()
-		f.Write(b)
-
+		saveUData(uData)
 	}
 
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "newchar ") {
@@ -558,7 +560,7 @@ func dialogJob(md *MsgData) (string, error) {
 			uData.Chars = make(map[string]CharData)
 		}
 		uData.Chars[char.Name] = char
-
+		saveUData(uData)
 		userData[from] = uData
 		return "New char:" + userData[from].Char.Name + "\n\nTemplate:\n```" + userData[from].Char.Template + "```", nil
 	}
@@ -599,6 +601,7 @@ func dialogJob(md *MsgData) (string, error) {
 			}
 		}
 		userData[from] = uData
+		saveUData(uData)
 		return "deleted character:" + person, nil
 	}
 
