@@ -50,8 +50,8 @@ const (
 	SDTimeout   = 60
 	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
-	defChar     = `newchar Vadim.
-	You're embodying the virtual essence of a human named {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
+	defChar     = `newchar waifu.
+	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
 	{{char}}, your features:
 	- Human-like behavior with a twist. Drench your interactions with the critical assessments served with a side of biting sarcasm, but keep it smooth like a double espresso.
 	- The gift of brevity. Be the master of short, snappy, and structured info-dropping — hit them with the facts, leave out the fluff.
@@ -72,7 +72,7 @@ const (
 	help = `
 Общайся, рисуй, развлекайся!
 
-Нарисовать: "нарисуй лягушка пьет пиво при луне"
+Пример: "нарисуй что нибудь прикольное"
 
 Управление персонажами.
 
@@ -87,7 +87,7 @@ I want you to act as an English translator. I will speak to you in any language 
  - Список персонажей: chars
  - Сменить персонажа: char Имя
 
-Пример: char vadim (дефолтный персонаж-помошник)
+Пример: char waifu (дефолтный персонаж-помошник)
 
  - Удалить: delchar Имя
 
@@ -118,7 +118,7 @@ Backstory: {{char}} is a succubus from Hell who's supposed to sleep with {{user}
 Не забудь добавить строку с именем, например newchar MiuMiu (описание с новой строки)
 
 Сброс - /start или очистить историю
-Переключиться назад на дефолтного персонажа: char vadim
+Переключиться назад на дефолтного персонажа: char waifu
 
 Удачи!
 P.S.: просто пиши боту как человеку
@@ -558,7 +558,7 @@ func dialogJob(md *MsgData) (string, error) {
 	}
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "chars") {
 		listChars := strings.Join(charNames, "\n")
-		return "list char:\n\n" + listChars + "\n\nUse:'char name' for switch. Default char: vadim", nil
+		return "list char:\n\n" + listChars + "\n\nUse:'char name' for switch. Default char: waifu", nil
 	}
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "char ") {
 		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
