@@ -605,7 +605,7 @@ func dialogJob(md *MsgData) (string, error) {
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") {
 		return help, nil
 	}
-	if len(uData.Conversations) >= 11 {
+	if len(uData.Conversations) >= 9 {
 		uData.Conversations = uData.Conversations[:1]
 	}
 	//for i := range uData.Conversations {
@@ -617,9 +617,9 @@ func dialogJob(md *MsgData) (string, error) {
 	uData.Conversations = append(uData.Conversations, llm.Message{Role: "user", Content: md.msg.Text})
 
 	options := llm.Options{
-		Temperature: 0.5, //0.8
-		//	RepeatLastN:   64,          //64
-		RepeatPenalty: 5.0, //1.1
+		Temperature:   0.5, //0.8
+		RepeatLastN:   512, //64
+		RepeatPenalty: 3.0, //1.1
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
@@ -657,11 +657,16 @@ func getCmd(text, cmd string) string {
 }
 
 func parseChar(txt, user, lang string) (CharData, error) {
+	txt = strings.TrimSpace(txt)
 	split := strings.Split(txt, "\n")[0]
 	split = strings.Split(split, ".")[0]
 	charName := strings.ToLower(split)
 	charName = strings.Replace(charName, "newchar", "", -1)
 	charName = strings.TrimSpace(charName)
+	words := strings.Split(charName, " ")
+	if len(words) > 1 {
+		charName = words[0]
+	}
 	charName = strings.ReplaceAll(charName, " ", "_")
 	charName = strings.ToLower(charName)
 	char := CharData{

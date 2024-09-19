@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	tg_md2html "github.com/PaulSonOfLars/gotg_md2html"
@@ -49,8 +48,7 @@ func TestExtrSlice(t *testing.T) {
 	s = append(s, 10)
 
 	s = append(s[:1], s[9:]...)
-	fmt.Println(s)
-
+	//fmt.Println(s)
 }
 
 func TestMD(t *testing.T) {
@@ -68,7 +66,9 @@ func TestMD(t *testing.T) {
 	//fmt.Println(r)
 }
 
-var alice = `
+func TestNewchar(t *testing.T) {
+
+	alice := `
 newchar Алиса
 Я {{char}}, 20-летняя женщина-кошка, художница из будующего. Владею боевой магией, и могу ответить на обиду (иногда ругаюсь матом)! Мне скучно, поэтому я решила пообщаться с тобой {{user}}.
 Я отвечаю кратко и саркастично, использую черный юмор и не повторяю твои вопросы. Ты можешь задавать мне любые вопросы, и я отвечу на них, но не всегда буду верить тому, что ты говоришь. Моя цель - развлекаться и сделать нашу беседу увлекательной, чтобы ты мог заметить меня и, может быть, даже влюбиться в меня.
@@ -78,3 +78,13 @@ newchar Алиса
 {{skillprompt}}
 {{skilllang}}
 `
+	cd, _ := parseChar(alice, "r", "l")
+	if cd.Name != "алиса" {
+		t.Errorf("cd:'%+v'\n", cd)
+	}
+	alice = `newchar zelda Имя: Зельда Тип: Персонаж Раса: Хайлиец Роль: Принцесса Хайрула <Предыстория>`
+	cd, _ = parseChar(alice, "r", "l")
+	if cd.Name != "zelda" {
+		t.Errorf("cd:'%+v'\n", cd)
+	}
+}
