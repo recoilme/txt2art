@@ -230,10 +230,6 @@ func producer(ch chan *MsgData, md *MsgData) {
 
 // producer sends data to the channel
 func producerImg(ch chan *MsgData, md *MsgData) {
-	//msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
-	//	ChatID:  md.msg.Chat.ID,
-	//	Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbE9Bm2WnKll3iuh_HsSi84sgi5uwNjQACpDQAAjMdKEm646l8i0rEZDYE"},
-	//})
 	msgStatus, err := md.b.SendSticker(md.ctx, &bot.SendStickerParams{
 		ChatID:  md.msg.Chat.ID,
 		Sticker: &models.InputFileString{Data: "CAACAgIAAxkBAAEbN2lm6nwwLfY4kG0CMoXKZiv3YH9QEwACSUoAApMXkEgEqmg0uSmyCjYE"},
@@ -594,17 +590,16 @@ func dialogJob(md *MsgData) (string, error) {
 	}
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "delchar ") {
 		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
-		person := spl[1]
+		person := strings.TrimSpace(spl[1])
 		for _, name := range charNames {
 			if name == person {
 				delete(uData.Chars, name)
 				userData[from] = uData
-				break
+				saveUData(uData)
+				return "deleted character:" + person, nil
 			}
 		}
-		userData[from] = uData
-		saveUData(uData)
-		return "deleted character:" + person, nil
+		return "character with name:'" + person + "' not found", nil
 	}
 
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") {
@@ -624,7 +619,7 @@ func dialogJob(md *MsgData) (string, error) {
 	options := llm.Options{
 		Temperature: 0.5, //0.8
 		//	RepeatLastN:   64,          //64
-		RepeatPenalty: 3.1, //1.1
+		RepeatPenalty: 5.0, //1.1
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
