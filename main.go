@@ -70,29 +70,21 @@ const (
 	Skill using language:
 	Use this language:{{lang}} for dialogs with {{user}} by default.
 	`
+
 	help = `
-Общайся, рисуй, развлекайся!
+Just chat with Char. To generate an image, ask him: "draw something interesting"
 
-Пример: "нарисуй что нибудь прикольное"
+Commands:
+ - chars - list chars
+ - char name - switch on char
+ - newchar name - create/update char 
+ - delchar name - delete char
+ - lang newlang - switch language 
+ - help - this screen
 
-Управление персонажами.
+Welcome to our chat: @charsaichat
 
-Новый персонаж: newchar Имя
-Описание навыков и характера персонажа с новой строки.
-
-Пример создания простого персонажа:
-
-newchar translate
-I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations.
-
- - Список персонажей: chars
- - Сменить персонажа: char Имя
-
-Пример: char waifu (дефолтный персонаж-помошник)
-
- - Удалить: delchar Имя
-
-Сложный персонаж (https://characterhub.org/characters/nyannyannyan/nightshade-lazy-succubus-c1bd9dcca8f3):
+New char example:
 
 newchar nightshade
 {{char}} species(succubus);
@@ -105,27 +97,20 @@ newchar nightshade
 {{char}} likes(video games, slacking off, video games, sleeping in, video games, eating sweets, did I mention she likes video games yet because she REALLY likes video games, soda, she's definitely addicted to video games);
 {{char}} dislikes(work, sex, dressing up, going out, pretty much anything that requires effort);
 {{char}} goals(slack off, play video games, laze around, avoid work, avoid getting into trouble with her bosses in Hell, mooch off {{user}} for as long as possible);
-
 Backstory: {{char}} is a succubus from Hell who's supposed to sleep with {{user}} for their soul. However, {{char}} doesn't want to work, so she's decided to instead fail to seduce {{user}} for as long as possible so that she can mooch off them while claiming she's doing her job to tempt {{user}}. It's definitely taking her so long because {{user}} is a tough nut to crack, yeah. (that's sarcasm.) And definitely not because she's slacking off as hard as she can to play video games instead, not at all. (that's even heavier sarcasm.)
  {{skillprompt}}
  {{skilllang}}
 
-{{skillprompt}} - добавляет в промпт рисование
-{{skilllang}} - переключает язык персонажа на системный
+Placeholders: 
+{{user}}, {{char}} - names
 
-Примеры персонажей: characterhub.org, chub.ai
-Примеры промптов:   https://huggingface.co/datasets/fka/awesome-chatgpt-prompts
+Skils:
+{{skillprompt}} - add draw skill to person
+{{skilllang}} - add lang
 
-Не забудь добавить строку с именем, например newchar MiuMiu (описание с новой строки)
-
-Сброс - /start или очистить историю
-Переключиться назад на дефолтного персонажа: char waifu
-
-Удачи!
-P.S.: просто пиши боту как человеку
-P.P.S.: боты врут и не умеют считать!
-
-Чат для пользователей бота: @charsaichat
+More examples:
+Chars: characterhub.org, chub.ai
+Prompts:   https://huggingface.co/datasets/fka/awesome-chatgpt-prompts
 `
 )
 
@@ -530,6 +515,9 @@ func dialogJob(md *MsgData) (string, error) {
 			if err == nil {
 				//unmarshal
 				uData.Chars = u.Chars
+				if u.Lang != "" {
+					uData.Lang = u.Lang
+				}
 			}
 		}
 		if uData.Chars == nil {
@@ -545,7 +533,6 @@ func dialogJob(md *MsgData) (string, error) {
 
 		saveUData(uData)
 	}
-
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "newchar ") {
 		char, err := parseChar(md.msg.Text, uData.User, uData.Lang)
 		if err != nil {
@@ -602,8 +589,18 @@ func dialogJob(md *MsgData) (string, error) {
 		return "character with name:'" + person + "' not found", nil
 	}
 
-	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") {
+	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") ||
+		strings.HasPrefix(strings.ToLower(md.msg.Text), "help") ||
+		strings.HasPrefix(strings.ToLower(md.msg.Text), "/help") {
 		return help, nil
+	}
+	if strings.HasPrefix(strings.ToLower(md.msg.Text), "lang ") {
+		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
+		lang := strings.TrimSpace(spl[1])
+		uData.Lang = lang
+		userData[from] = uData
+		saveUData(uData)
+		return "new language:" + lang, nil
 	}
 	if len(uData.Conversations) >= 9 {
 		uData.Conversations = uData.Conversations[:1]
