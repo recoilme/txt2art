@@ -512,7 +512,7 @@ func truncateString(s string, total int) string {
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
 	uData := userData[from]
-	fmt.Println(md.msg.From.Username, time.Now())
+	fmt.Println(md.msg.From.Username, time.Now().Format(time.RFC822))
 	if uData.Id == 0 {
 		//new user
 		uData.Id = from
@@ -617,8 +617,7 @@ func dialogJob(md *MsgData) (string, error) {
 		return "new language:" + lang, nil
 	}
 	if len(uData.Conversations) >= 9 {
-		uData.Conversations = uData.Conversations[:1]
-		uData.Conversations = append(uData.Conversations, uData.Conversations[len(uData.Conversations)-2:]...)
+		uData.Conversations = append(uData.Conversations[:1], uData.Conversations[len(uData.Conversations)-2:]...)
 	}
 	//for i := range uData.Conversations {
 	//	if i%2 != 0 {
