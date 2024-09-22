@@ -183,10 +183,6 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	if update.Message.Text == "/start" {
-		fmt.Println("start")
-	}
-
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
 		if !strings.Contains(low, "алиса") {
@@ -516,6 +512,7 @@ func truncateString(s string, total int) string {
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
 	uData := userData[from]
+	fmt.Println(md.msg.From.Username, time.Now())
 	if uData.Id == 0 {
 		//new user
 		uData.Id = from
