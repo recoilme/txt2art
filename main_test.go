@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	tg_md2html "github.com/PaulSonOfLars/gotg_md2html"
@@ -47,8 +48,8 @@ func TestExtrSlice(t *testing.T) {
 	s = append(s, 9)
 	s = append(s, 10)
 
-	s = append(s[:1], s[9:]...)
-	//fmt.Println(s)
+	s = append(s[:1], s[len(s)-2:]...)
+	fmt.Println(s)
 }
 
 func TestMD(t *testing.T) {

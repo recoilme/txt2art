@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -206,11 +207,15 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // producer sends data to the channel
 func producer(ch chan *MsgData, md *MsgData) {
-	md.b.SendChatAction(md.ctx, &bot.SendChatActionParams{
-		ChatID: md.msg.Chat.ID,
-		Action: models.ChatActionTyping,
-	})
-	ch <- md // Non-blocking for the first n elements
+	select {
+	case ch <- md: // Put in the channel unless it is full
+		md.b.SendChatAction(md.ctx, &bot.SendChatActionParams{
+			ChatID: md.msg.Chat.ID,
+			Action: models.ChatActionTyping,
+		})
+	default:
+		sendErr(md, errors.New("channel full, wait a little"))
+	}
 }
 
 // producer sends data to the channel
@@ -231,13 +236,21 @@ func producerImg(ch chan *MsgData, md *MsgData) {
 	}
 
 	md.msgStatus = msgStatus
-
-	ch <- md // Non-blocking for the first n elements
+	select {
+	case ch <- md: // Put in the channel unless it is full
+	default:
+		sendErr(md, errors.New("channel full, wait a little"))
+	}
 }
 
 func consumerImg(ch chan *MsgData) {
 	for {
 		md := <-ch
+		if md == nil {
+			fmt.Println("consumerImg nill msg ")
+			sendErr(md, errors.New("consumerImg nill msg "))
+			continue
+		}
 		textRu := md.msg.Text
 		textEn := textRu
 		textEnMax := 512
@@ -348,7 +361,11 @@ func consumerImg(ch chan *MsgData) {
 func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
-
+		if md == nil {
+			fmt.Println("consumer nill msg")
+			sendErr(md, errors.New("consumer nill msg "))
+			continue
+		}
 		reply, err := dialogJob(md)
 		if err != nil {
 			sendErr(md, err)
@@ -459,7 +476,7 @@ func simpleJob(text string) (string, error) {
 func sendErr(md *MsgData, err error) {
 	md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 		ChatID:              md.msg.Chat.ID,
-		Text:                "Ой, ошибка: " + err.Error(),
+		Text:                "Error: " + err.Error(),
 		DisableNotification: true,
 		ReplyParameters: &models.ReplyParameters{
 			MessageID: md.msg.ID,
@@ -569,7 +586,7 @@ func dialogJob(md *MsgData) (string, error) {
 				uData.Conversations[0] = llm.Message{Role: "system", Content: char.Char}
 				uData.Conversations = uData.Conversations[:1]
 				userData[from] = uData
-				return "switched on character:" + person, nil
+				return "switched on character:" + person + "\nHistory cleaned", nil
 			}
 		}
 		userData[from] = uData
@@ -604,6 +621,7 @@ func dialogJob(md *MsgData) (string, error) {
 	}
 	if len(uData.Conversations) >= 9 {
 		uData.Conversations = uData.Conversations[:1]
+		uData.Conversations = append(uData.Conversations, uData.Conversations[len(uData.Conversations)-2:]...)
 	}
 	//for i := range uData.Conversations {
 	//	if i%2 != 0 {
