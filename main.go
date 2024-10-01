@@ -196,12 +196,8 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "чар") || !strings.Contains(low, "char") {
+		if !strings.Contains(low, "чар") && !strings.Contains(low, "char") {
 			return
-		} else {
-			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
-				return
-			}
 		}
 	}
 

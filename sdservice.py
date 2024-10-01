@@ -72,7 +72,7 @@ def txt2img(prompt1,prompt2):
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
             num_inference_steps=40,
-            guidance_scale=3.5,
+            guidance_scale=5,
             guidance_rescale=0.0,
             num_images_per_prompt=2,
             image=images,
