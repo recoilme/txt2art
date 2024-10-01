@@ -48,9 +48,9 @@ type UserData struct {
 }
 
 const (
-	SDHost      = "https://wqzhut3bfr6t3v-8882.proxy.runpod.net/"
+	SDHost      = "127.0.0.1:8882"
 	SDTimeout   = 60
-	OllamaHost  = "https://wqzhut3bfr6t3v-11434.proxy.runpod.net"
+	OllamaHost  = "127.0.0.1:11434"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	defChar     = `newchar waifu.
 	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
@@ -72,6 +72,17 @@ const (
 	Use this language:{{lang}} for dialogs with {{user}} by default.
 	`
 
+	help_short = `
+Just chat with Char (waifu). To generate an image, ask him/here: "draw something interesting"
+
+Commands:
+ - chars - list chars
+ - char name - switch on char
+ - newchar name - create/update char 
+ - delchar name - delete char
+ - lang newlang - switch language 
+ - help - full help screen with examples
+	`
 	help = `
 Just chat with Char. To generate an image, ask him: "draw something interesting"
 
@@ -603,8 +614,11 @@ func dialogJob(md *MsgData) (string, error) {
 		return "character with name:'" + person + "' not found", nil
 	}
 
-	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") ||
-		strings.HasPrefix(strings.ToLower(md.msg.Text), "help") ||
+	if strings.HasPrefix(strings.ToLower(md.msg.Text), "/start") {
+		return help_short, nil
+	}
+
+	if strings.HasPrefix(strings.ToLower(md.msg.Text), "help") ||
 		strings.HasPrefix(strings.ToLower(md.msg.Text), "/help") {
 		return help, nil
 	}
