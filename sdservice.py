@@ -65,14 +65,14 @@ def txt2img(prompt1,prompt2):
             #generator=torch.Generator(device="cuda").seed(),
             num_images_per_prompt=2
         ).images
-        image = img2img_pipe(
-            strength=0.75,
+        images = img2img_pipe(
+            strength=0.7,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=30,
-            guidance_scale=2.5,
+            num_inference_steps=35,
+            guidance_scale=3.5,
             guidance_rescale=0.0,
             num_images_per_prompt=2,
             image=images,
