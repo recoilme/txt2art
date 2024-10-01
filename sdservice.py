@@ -8,7 +8,7 @@ import torch, gc
 import base64
 import json
 
-MODEL_PATH = "/workspace/models/colorfulxl_v74-000012.safetensors"
+MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
 pipe = StableDiffusionXLPipeline.from_single_file(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
@@ -49,8 +49,8 @@ def txt2img(prompt1,prompt2):
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=26,
-            guidance_scale=1.5,
+            num_inference_steps=42,
+            guidance_scale=5.5,
             #generator=torch.Generator(device="cuda").seed(),
             num_images_per_prompt=2
         ).images
@@ -64,8 +64,8 @@ def txt2img(prompt1,prompt2):
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=26,
-            guidance_scale=1.5,
+            num_inference_steps=42,
+            guidance_scale=5.5,
             #generator=torch.Generator(device="cuda").seed(),
             num_images_per_prompt=2
         ).images
