@@ -48,7 +48,7 @@ type UserData struct {
 }
 
 const (
-	SDHost      = "127.0.0.1:8882"
+	SDHost      = "http://127.0.0.1:8882"
 	SDTimeout   = 60
 	OllamaHost  = "127.0.0.1:11434"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
