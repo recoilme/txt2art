@@ -38,6 +38,7 @@ image = pipe(
 ).images
 image = img2img_pipe(
     prompt=prompt,
+    strength=0.75,
     negative_prompt = neg_prompt,
     num_inference_steps=num_inference_steps,
     denoising_start=base_model_power,

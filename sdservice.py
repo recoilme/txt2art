@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionXLPipeline,StableDiffusionXLImg2ImgPipeline
 from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl_2p
 from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl
 from diffusers import EulerAncestralDiscreteScheduler
@@ -20,6 +20,15 @@ pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config,
 )
 pipe.enable_vae_slicing()
+img2img_pipe = StableDiffusionXLImg2ImgPipeline(
+    vae=pipe.vae,
+    text_encoder=pipe.text_encoder,
+    text_encoder_2=pipe.text_encoder_2,
+    tokenizer=pipe.tokenizer,
+    tokenizer_2=pipe.tokenizer_2,
+    unet=pipe.unet,
+    scheduler=pipe.scheduler,
+)
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
@@ -38,38 +47,51 @@ def encode_images_to_base64(images):
     return json.dumps(encoded_images)
 
 def txt2img(prompt1,prompt2):
-    negative_prompt = ""
+    if len(prompt2)>20:
+        prompt1=""
+    negative_prompt = "worst quality, low quality, text, censored, deformed, bad hand, blurry, watermark, multiple phones, weights, bunny ears, extra hands, extra fingers, deformed fingers"
     prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
 
     with torch.no_grad():
         images = pipe(
             width = 832,
-            height = 1216,
+            height = 1088,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=42,
-            guidance_scale=5.5,
+            num_inference_steps=20,
+            guidance_scale=5,
             #generator=torch.Generator(device="cuda").seed(),
             num_images_per_prompt=2
         ).images
-
-
-        prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
-        image2 = pipe(
-            width = 1216,
-            height = 832,
+        image = img2img_pipe(
+            strength=0.75,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=42,
-            guidance_scale=5.5,
-            #generator=torch.Generator(device="cuda").seed(),
-            num_images_per_prompt=2
+            num_inference_steps=30,
+            guidance_scale=2.5,
+            guidance_rescale=0.0,
+            num_images_per_prompt=2,
+            image=images,
         ).images
-        images+=image2
+
+        #prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+        #image2 = pipe(
+        #    width = 1216,
+        #    height = 832,
+        #    prompt_embeds=prompt_embeds,
+        #    pooled_prompt_embeds=pooled_prompt_embeds,
+        #    negative_prompt_embeds=prompt_neg_embeds,
+        #    negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        #    num_inference_steps=32,
+        #    guidance_scale=5.5,
+            #generator=torch.Generator(device="cuda").seed(),
+        #    num_images_per_prompt=1
+        #).images
+        #images+=image2
         
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
@@ -107,7 +129,7 @@ def run_server(port):
     print("test строка:", prompt)  # печатаем строку
 
     #warmup
-    #images = txt2img("prompt")
+    images = txt2img("prompt","")
     
     server_address = ('', port)
     httpd = HTTPServer(server_address, RequestHandler)

@@ -196,7 +196,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "алиса") {
+		if !strings.Contains(low, "чар") || !strings.Contains(low, "char") {
 			return
 		} else {
 			if strings.Contains(low, "плотва") || strings.Contains(low, "plotva") {
@@ -301,6 +301,7 @@ func consumerImg(ch chan *MsgData) {
 
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
 		textEn = fmt.Sprintf("(%s)\n", textEn)
+
 		imgData, err := imageGet(textEn, textPrompt)
 		if err != nil {
 			sendErr(md, err)
@@ -337,7 +338,7 @@ func consumerImg(ch chan *MsgData) {
 		}
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
-			caption := textEn + textPrompt
+			caption := textPrompt //textEn + textPrompt
 			caption = truncateString(md.msg.ReplyToMessage.Text+"\n\n"+caption, 876)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
@@ -398,6 +399,9 @@ func consumer(ch chan *MsgData) {
 		}
 
 		textDraw := getCmd(reply, "draw")
+		if textDraw == "" {
+			textDraw = getCmd(reply, "prompt")
+		}
 		if textDraw != "" {
 			replMsg.Text = textDraw
 			go producerImg(imageChannel, &MsgData{
@@ -474,7 +478,9 @@ func simpleJob(text string) (string, error) {
 		Model:  OllamaModel,
 		Prompt: text,
 		Options: llm.Options{
-			Temperature: 0.5,
+			Temperature:   0.5,
+			RepeatLastN:   768, //64
+			RepeatPenalty: 5.0, //1.1
 		},
 	})
 	return answer.Response, err
@@ -643,8 +649,8 @@ func dialogJob(md *MsgData) (string, error) {
 
 	options := llm.Options{
 		Temperature:   0.5, //0.8
-		RepeatLastN:   512, //64
-		RepeatPenalty: 3.0, //1.1
+		RepeatLastN:   768, //64
+		RepeatPenalty: 5.0, //1.1
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
