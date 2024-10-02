@@ -19,12 +19,13 @@ pipe = StableDiffusionXLPipeline.from_single_file(
     torch_dtype=torch.bfloat16,
     variant="fp16",
     use_safetensors=True
-).to('cuda')
+)
+pipe.enable_model_cpu_offload()
 
 pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config,
 )
-pipe.enable_vae_slicing()
+#pipe.enable_vae_slicing()
 img2img_pipe = StableDiffusionXLImg2ImgPipeline(
     vae=pipe.vae,
     text_encoder=pipe.text_encoder,
@@ -34,6 +35,7 @@ img2img_pipe = StableDiffusionXLImg2ImgPipeline(
     unet=pipe.unet,
     scheduler=pipe.scheduler,
 )
+img2img_pipe.enable_model_cpu_offload()
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
