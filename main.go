@@ -263,6 +263,7 @@ func consumerImg(ch chan *MsgData) {
 		var err error
 
 		if hasNonEnglish(textRu) {
+			fmt.Println("hasNonEnglish")
 			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
 			if err != nil {
 				sendErr(md, err)
@@ -270,6 +271,7 @@ func consumerImg(ch chan *MsgData) {
 			}
 		}
 		if len([]rune(textEn)) > textEnMax {
+			fmt.Println("[]rune(textEn)) > textEnMax ", len([]rune(textEn)))
 			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textEn))
 			if err != nil {
 				sendErr(md, err)
@@ -336,7 +338,7 @@ func consumerImg(ch chan *MsgData) {
 		}
 		medias := make([]models.InputMedia, 0, 4)
 		for i, v := range imgData {
-			caption := textPrompt //textEn + textPrompt
+			caption := textEn + textPrompt
 			caption = truncateString(md.msg.ReplyToMessage.Text+"\n\n"+caption, 876)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),

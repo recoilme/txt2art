@@ -13,29 +13,36 @@ from RealESRGAN import RealESRGAN
 modelr = RealESRGAN("cuda", scale=2)
 modelr.load_weights('weights/RealESRGAN_x2.pth', download=True)
 
-MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-pipe = StableDiffusionXLPipeline.from_single_file(
+MODEL_PATH = "/home/recoilme/models/recoilme-sdxl-v09"#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
+pipe = StableDiffusionXLPipeline.from_pretrained(
+#pipe = StableDiffusionXLPipeline.from_single_file(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
-    variant="fp16",
+    variant="bf16",
     use_safetensors=True
-)
-pipe.enable_model_cpu_offload()
-
+).to("cuda")
+#pipe.enable_model_cpu_offload()
 pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config,
 )
-#pipe.enable_vae_slicing()
-img2img_pipe = StableDiffusionXLImg2ImgPipeline(
-    vae=pipe.vae,
-    text_encoder=pipe.text_encoder,
-    text_encoder_2=pipe.text_encoder_2,
-    tokenizer=pipe.tokenizer,
-    tokenizer_2=pipe.tokenizer_2,
-    unet=pipe.unet,
-    scheduler=pipe.scheduler,
+pipe.enable_vae_slicing()
+## Compile the UNet and VAE.
+#pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
+#pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
+
+img2img_pipe = StableDiffusionXLImg2ImgPipeline.from_pipe(
+    pipe
 )
-img2img_pipe.enable_model_cpu_offload()
+#img2img_pipe = StableDiffusionXLImg2ImgPipeline(
+#    vae=pipe.vae,
+#    text_encoder=None,
+#    text_encoder_2=None,
+#    tokenizer=None,
+#    tokenizer_2=None,
+#    unet=pipe.unet,
+#    scheduler=pipe.scheduler,
+#)
+#img2img_pipe.enable_model_cpu_offload()
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
@@ -57,10 +64,13 @@ def txt2img(prompt1,prompt2):
     negative_prompt = "worst quality, low quality, text, censored, deformed, bad hand, blurry, watermark, multiple phones, weights, bunny ears, extra hands, extra fingers, deformed fingers"
     prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
 
+    gc.collect()
+    #torch.cuda.empty_cache()
+
     with torch.no_grad():
         images = pipe(
-            width = 832,
-            height = 1088,
+            width = 640,
+            height = 896,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
@@ -84,7 +94,7 @@ def txt2img(prompt1,prompt2):
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=40,
+            num_inference_steps=35,
             guidance_scale=5,
             guidance_rescale=0.0,
             num_images_per_prompt=2,
