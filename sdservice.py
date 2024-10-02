@@ -52,8 +52,6 @@ def encode_images_to_base64(images):
     return json.dumps(encoded_images)
 
 def txt2img(prompt1,prompt2):
-    if len(prompt1)>300 and len(prompt2)>100:
-        prompt1=""
     negative_prompt = "worst quality, low quality, text, censored, deformed, bad hand, blurry, watermark, multiple phones, weights, bunny ears, extra hands, extra fingers, deformed fingers"
     prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
 
