@@ -263,7 +263,7 @@ func consumerImg(ch chan *MsgData) {
 		var err error
 
 		if hasNonEnglish(textRu) {
-			fmt.Println("hasNonEnglish")
+			//fmt.Println("hasNonEnglish")
 			textEn, err = simpleJob(fmt.Sprintf("I want you to act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. My first sentence is: %s", textRu))
 			if err != nil {
 				sendErr(md, err)
@@ -271,7 +271,7 @@ func consumerImg(ch chan *MsgData) {
 			}
 		}
 		if len([]rune(textEn)) > textEnMax {
-			fmt.Println("[]rune(textEn)) > textEnMax ", len([]rune(textEn)))
+			//fmt.Println("[]rune(textEn)) > textEnMax ", len([]rune(textEn)))
 			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textEn))
 			if err != nil {
 				sendErr(md, err)
@@ -506,7 +506,7 @@ func sendErr(md *MsgData, err error) {
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
 		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r)) {
-			fmt.Println(string(r), r, unicode.Is(unicode.Latin, r))
+			//fmt.Println(string(r), r, unicode.Is(unicode.Latin, r))
 			return true
 		}
 	}
