@@ -505,7 +505,7 @@ func sendErr(md *MsgData, err error) {
 }
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
-		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r)) {
+		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r)) {
 			fmt.Println(string(r), r, unicode.Is(unicode.Latin, r))
 			return true
 		}
