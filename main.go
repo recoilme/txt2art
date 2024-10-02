@@ -196,9 +196,11 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "чар") && !strings.Contains(low, "char") {
+		if !strings.HasPrefix(low, "чар ") && !strings.HasPrefix(low, "char ") {
 			return
 		}
+		update.Message.Text = strings.TrimSpace(update.Message.Text[4:])
+		fmt.Println("public", update.Message.Text)
 	}
 
 	go producer(dialogChannel, &MsgData{
@@ -624,6 +626,7 @@ func dialogJob(md *MsgData) (string, error) {
 		strings.HasPrefix(strings.ToLower(md.msg.Text), "/help") {
 		return help, nil
 	}
+
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "lang ") {
 		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
 		lang := strings.TrimSpace(spl[1])
@@ -632,6 +635,11 @@ func dialogJob(md *MsgData) (string, error) {
 		saveUData(uData)
 		return "new language:" + lang, nil
 	}
+
+	if strings.HasPrefix(strings.ToLower(md.msg.Text), "prompt") {
+		return md.msg.Text, nil
+	}
+
 	if len(uData.Conversations) >= 9 {
 		uData.Conversations = append(uData.Conversations[:1], uData.Conversations[len(uData.Conversations)-2:]...)
 	}
