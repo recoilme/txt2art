@@ -69,8 +69,8 @@ def txt2img(prompt1,prompt2):
 
     with torch.no_grad():
         images = pipe(
-            width = 768,
-            height = 1024,
+            width = 704,
+            height = 960,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
