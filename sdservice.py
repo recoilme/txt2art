@@ -73,7 +73,7 @@ def txt2img(prompt1,prompt2):
         #images[0].save('0.png')
         
         for i, image in enumerate(images):
-            predicted_image = modelr.predict(image)
+            predicted_image = modelr.predict(images[i])
             images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))
 
         #images[0].save('1.png')
