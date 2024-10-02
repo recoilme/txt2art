@@ -69,7 +69,7 @@ def txt2img(prompt1,prompt2):
 
     with torch.no_grad():
         images = pipe(
-            width = 704,
+            width = 832,
             height = 960,
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
@@ -84,7 +84,7 @@ def txt2img(prompt1,prompt2):
         
         for i, image in enumerate(images):
             predicted_image = modelr.predict(images[i])
-            images[i] = predicted_image.resize((int(predicted_image.width * 0.625), int(predicted_image.height * 0.625)))
+            images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))#0.625
 
         #images[0].save('1.png')
         images = img2img_pipe(
@@ -94,8 +94,8 @@ def txt2img(prompt1,prompt2):
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=35,
-            guidance_scale=4,
+            num_inference_steps=40,
+            guidance_scale=5,
             guidance_rescale=0.0,
             num_images_per_prompt=2,
             image=images,
