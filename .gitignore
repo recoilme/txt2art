@@ -1,2 +1,6 @@
 token
 data/*
+pron/*
+weights/*
+txt2artbot
+*.log
