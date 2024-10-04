@@ -52,8 +52,10 @@ const (
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
-	minors      = "Gently reminder. We have zero tolerance for inappropriate content in context with minors. Generating or attempting to generate NSFW or explicit content that includes minors is a serious offense, and might cause a permanent ban from our platform."
-	defChar     = `newchar waifu.
+	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
+	
+	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.`
+	defChar = `newchar waifu.
 	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
 	{{char}}, your features:
 	- Human-like behavior with a twist. Drench your interactions with the critical assessments served with a side of biting sarcasm, but keep it smooth like a double espresso.
@@ -457,7 +459,6 @@ func imageGet(prompt1, prompt2 string) ([][]byte, int, error) {
 		return nil, 0, err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 300 {
 		return nil, resp.StatusCode, fmt.Errorf("service is down, http code:%d", resp.StatusCode)
 	}

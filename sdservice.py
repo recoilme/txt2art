@@ -15,9 +15,13 @@ import onnxruntime as rt
 from PIL import Image
 from datetime import datetime
 
+#MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
+MODEL_PATH = "/workspace/recoilme-sdxl-v09.fp16.safetensors"
+
 #https://github.com/ai-forever/Real-ESRGAN?tab=readme-ov-file
 modelr = RealESRGAN("cuda", scale=2)
 modelr.load_weights('weights/RealESRGAN_x2.pth', download=True)
+
 #wd3 tagger
 # Specific model repository from SmilingWolf's collection / Repository Default vit tagger v3
 VIT_MODEL_DSV3_REPO = "SmilingWolf/wd-vit-tagger-v3"
@@ -108,7 +112,7 @@ def captions(image):
     minors = ['loli', 'child','small_breasts','flatchested'] 
     isminors = any(key in minors for key in tags)
 
-    nsfw = ['explicit', 'sensitive','questionable']
+    nsfw = ['explicit', 'sensitive']
     isnsfw = any(key in nsfw for key in rating)
 
     porn = any(key == 'explicit' for key in rating)
@@ -117,8 +121,7 @@ def captions(image):
     return isminors, porn, isnsfw, caption
 # end wd3
 
-MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-#MODEL_PATH = "/workspace/recoilme-sdxl-v09.fp16.safetensors"#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
+#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
 #pipe = StableDiffusionXLPipeline.from_pretrained(
 pipe = StableDiffusionXLPipeline.from_single_file(
     MODEL_PATH,
@@ -184,8 +187,8 @@ def txt2img(prompt1,prompt2):
         for i, image in enumerate(images):
             #wd3 
             minors, porn, nsfw, tags = captions(image)
-            #print(tags)
             if minors:
+                print(minors, porn, nsfw, tags)
                 has_minors = True
             if porn:
                 has_porn = True
@@ -207,7 +210,7 @@ def txt2img(prompt1,prompt2):
                 pooled_prompt_embeds=pooled_prompt_embeds,
                 negative_prompt_embeds=prompt_neg_embeds,
                 negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                num_inference_steps=50,
+                num_inference_steps=44,
                 guidance_scale=5,
                 guidance_rescale=0.0,
                 num_images_per_prompt=2,
@@ -228,17 +231,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             prompt2 = data['prompt2']
             print("propmt:", prompt1, prompt2)  # печатаем строки
             images,has_porn = txt2img(prompt1,prompt2)
-            self.send_header('Content-type', 'application/json')
             if len(images)>0:
-                result = encode_images_to_base64(images)
-                self.wfile.write(result.encode('utf-8'))
                 if has_porn:
                     self.send_response(210)
                 else:
                     self.send_response(200)
             else:
                 self.send_response(204)
+            self.send_header('Content-type', 'application/json')
             self.end_headers()
+            if len(images)>0:
+                result = encode_images_to_base64(images)
+                self.wfile.write(result.encode('utf-8'))
             del body
             del prompt1
             del prompt2
@@ -251,7 +255,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run_server(port):
     #warmup
-    images,pron = txt2img("1girl,oral,sex","")
+    images,pron = txt2img("1girl,sex","")
     print("len",len(images))
     if len(images)>0:
         images[0].save(datetime.now().strftime("pron/start_%Y-%m-%d_%H:%M:%S")+'.jpg')
