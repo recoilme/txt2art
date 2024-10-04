@@ -1,49 +1,163 @@
-from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import io
+from diffusers import StableDiffusionXLPipeline,StableDiffusionXLImg2ImgPipeline
+from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl_2p
+from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl
 from diffusers import EulerAncestralDiscreteScheduler
-from torch import float16, cuda
+import torch, gc
+import base64
+import json
+from RealESRGAN import RealESRGAN
 
-training_refiner_strength = 0.4
-base_model_power = 1 - training_refiner_strength
-num_inference_steps = 40
-stage_1_model_id = '/workspace/ds/models/recoilme-sdxl-v07.safetensors'
-torch_device = 'cuda' 
+#https://github.com/ai-forever/Real-ESRGAN?tab=readme-ov-file
+modelr = RealESRGAN("cuda", scale=2)
+modelr.load_weights('weights/RealESRGAN_x2.pth', download=True)
 
-pipe = StableDiffusionXLPipeline.from_single_file(stage_1_model_id, add_watermarker=False, torch_dtype=float16).to(torch_device)
+MODEL_PATH = "/workspace/recoilme-sdxl-v09.fp16.safetensors"#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
+#pipe = StableDiffusionXLPipeline.from_pretrained(
+pipe = StableDiffusionXLPipeline.from_single_file(
+    MODEL_PATH,
+    torch_dtype=torch.bfloat16,
+    variant="bf16",
+    use_safetensors=True
+).to("cuda")
+#pipe.enable_model_cpu_offload()
 pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config,
 )
-img2img_pipe = StableDiffusionXLImg2ImgPipeline(
-        vae=pipe.vae,
-        text_encoder=pipe.text_encoder,
-        text_encoder_2=pipe.text_encoder_2,
-        tokenizer=pipe.tokenizer,
-        tokenizer_2=pipe.tokenizer_2,
-        unet=pipe.unet,
-        scheduler=pipe.scheduler,
+pipe.enable_vae_slicing()
+## Compile the UNet and VAE.
+#pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
+#pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
+img2img_pipe = StableDiffusionXLImg2ImgPipeline.from_pipe(
+    pipe
 )
+#img2img_pipe = StableDiffusionXLImg2ImgPipeline(
+#    vae=pipe.vae,
+#    text_encoder=None,
+#    text_encoder_2=None,
+#    tokenizer=None,
+#    tokenizer_2=None,
+#    unet=pipe.unet,
+#    scheduler=pipe.scheduler,
+#)
+#img2img_pipe.enable_model_cpu_offload()
+## Compile the UNet and VAE.
+#pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
+#pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
+    
+def encode_images_to_base64(images):
+    encoded_images = []
+    for i, image in enumerate(images):
+        with io.BytesIO() as buffer:
+            image.save(buffer, format='JPEG', quality=97)
+            encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            encoded_images.append(encoded_image)
+        del buffer  # удалить буфер
+        del image  
+    gc.collect() 
+    del images  # удалить images
+    return json.dumps(encoded_images)
 
-prompt = "freckles,long hair,ginger hair,fox ears,cleavage,grey eyes,bondage,upper body,medium breasts,(masterpiece, best quality, very aesthetic, ultra detailed), intricate details, posing, flirty, dynamic"
-neg_prompt = "low quality, worst quality, bad hands, crossed eyes, fused fingers, watermark, lowres"
-use_zsnr = False
+def txt2img(prompt1,prompt2):
+    negative_prompt = "worst quality, low quality, text, censored, deformed, bad hand, blurry, watermark, multiple phones, weights, bunny ears, extra hands, extra fingers, deformed fingers"
+    prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
 
-image = pipe(
-    prompt=prompt,
-    negative_prompt = neg_prompt,
-    num_inference_steps=num_inference_steps,
-    denoising_end=base_model_power,
-    guidance_scale=5.5,
-    guidance_rescale=0.7 if use_zsnr else 0.0,
-    output_type="latent",
-).images
-image = img2img_pipe(
-    prompt=prompt,
-    strength=0.75,
-    negative_prompt = neg_prompt,
-    num_inference_steps=num_inference_steps,
-    denoising_start=base_model_power,
-    guidance_scale=1.5,
-    guidance_rescale=0.7 if use_zsnr else 0.0,
-    image=image,
-).images[0]
-image.save('demo.png', format="PNG")
+    gc.collect()
+    #torch.cuda.empty_cache()
+
+    with torch.no_grad():
+        images = pipe(
+            width = 832,
+            height = 960,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=prompt_neg_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=20,
+            guidance_scale=5,
+            #generator=torch.Generator(device="cuda").seed(),
+            num_images_per_prompt=2
+        ).images
+        #images[0].save('0.png')
+        
+        for i, image in enumerate(images):
+            predicted_image = modelr.predict(images[i])
+            images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))#0.625
+
+        #images[0].save('1.png')
+        images = img2img_pipe(
+            strength=0.7,
+            steps_offset = 500,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=prompt_neg_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=40,
+            guidance_scale=5,
+            guidance_rescale=0.0,
+            num_images_per_prompt=2,
+            image=images,
+        ).images
+
+        #prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl_2p(pipe, prompt = prompt1, prompt_2 = prompt1+prompt2, neg_prompt = negative_prompt,neg_prompt_2 = negative_prompt)
+        #image2 = pipe(
+        #    width = 1216,
+        #    height = 832,
+        #    prompt_embeds=prompt_embeds,
+        #    pooled_prompt_embeds=pooled_prompt_embeds,
+        #    negative_prompt_embeds=prompt_neg_embeds,
+        #    negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        #    num_inference_steps=32,
+        #    guidance_scale=5.5,
+            #generator=torch.Generator(device="cuda").seed(),
+        #    num_images_per_prompt=1
+        #).images
+        #images+=image2
+        
+        del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
+        gc.collect()
+        return images
+
+class RequestHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            data = json.loads(body.decode('utf-8'))  # парсим JSON из тела запроса
+            prompt1 = data['prompt1']
+            prompt2 = data['prompt2']
+            print("Получены строки:", prompt1, prompt2)  # печатаем строки
+            
+    
+            images = txt2img(prompt1,prompt2)
+            result = encode_images_to_base64(images)
+            self.wfile.write(result.encode('utf-8'))
+            del body
+            del prompt1
+            del prompt2
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"")
+
+def run_server(port):
+    prompt = "prompt"
+    print("test строка:", prompt)  # печатаем строку
+
+    #warmup
+    images = txt2img("A magical forest of luminous purple mushrooms glows in a crystalline landscape beneath swirling nebulas with pink orange blue hues; mystical plants grow amidst the giant fungi and fantastical creatures fly through sparkling paths as peaceful music fills this wondrous dreamscape","")
+    
+    server_address = ('', port)
+    httpd = HTTPServer(server_address, RequestHandler)
+    print('Сервер запущен на порту', port)
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run_server(8882)  # замените 8080 на свой порт

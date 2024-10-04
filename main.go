@@ -52,8 +52,8 @@ const (
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
-	//off:= "We have zero tolerance for inappropriate content in context with minors. Generating or attempting to generate NSFW content that includes minors is a serious offense, and might cause a permanent ban from our platform. If you think this is an error, please help us here."
-	defChar = `newchar waifu.
+	minors      = "Gently reminder. We have zero tolerance for inappropriate content in context with minors. Generating or attempting to generate NSFW or explicit content that includes minors is a serious offense, and might cause a permanent ban from our platform."
+	defChar     = `newchar waifu.
 	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
 	{{char}}, your features:
 	- Human-like behavior with a twist. Drench your interactions with the critical assessments served with a side of biting sarcasm, but keep it smooth like a double espresso.
@@ -303,7 +303,7 @@ func consumerImg(ch chan *MsgData) {
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
 		textEn = fmt.Sprintf("(%s)\n", textEn)
 
-		imgData, err := imageGet(textEn, textPrompt)
+		imgData, statusCode, err := imageGet(textEn, textPrompt)
 		if err != nil {
 			sendErr(md, err)
 			continue
@@ -313,8 +313,24 @@ func consumerImg(ch chan *MsgData) {
 			MessageID: md.msgStatus.ID,
 		})
 
+		if statusCode == 210 {
+			paid = true
+		}
+		if statusCode == 204 {
+			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+				ChatID:              md.msg.Chat.ID,
+				Text:                minors,
+				DisableNotification: true,
+				ReplyParameters: &models.ReplyParameters{
+					MessageID: md.msg.ID,
+					ChatID:    md.msg.Chat.ID,
+				},
+			})
+			continue
+		}
+
 		if paid {
-			medias := make([]models.InputPaidMedia, 0, 4)
+			medias := make([]models.InputPaidMedia, 0, 2)
 			for i, v := range imgData {
 				medias = append(medias, &models.InputPaidMediaPhoto{
 					Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
@@ -337,7 +353,7 @@ func consumerImg(ch chan *MsgData) {
 			}
 			continue
 		}
-		medias := make([]models.InputMedia, 0, 4)
+		medias := make([]models.InputMedia, 0, 2)
 		for i, v := range imgData {
 			caption := textEn + textPrompt
 			caption = truncateString(md.msg.ReplyToMessage.Text+"\n\n"+caption, 876)
@@ -414,7 +430,7 @@ func consumer(ch chan *MsgData) {
 	}
 }
 
-func imageGet(prompt1, prompt2 string) ([][]byte, error) {
+func imageGet(prompt1, prompt2 string) ([][]byte, int, error) {
 	client := &http.Client{Timeout: SDTimeout * time.Second}
 	type Prompt struct {
 		Prompt1 string `json:"prompt1"`
@@ -431,26 +447,29 @@ func imageGet(prompt1, prompt2 string) ([][]byte, error) {
 	req, err := http.NewRequest("POST", SDHost, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	// отправляем запрос
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("service is down, http code:%d", resp.StatusCode)
+	if resp.StatusCode >= 300 {
+		return nil, resp.StatusCode, fmt.Errorf("service is down, http code:%d", resp.StatusCode)
+	}
+	if resp.StatusCode == 204 {
+		return nil, resp.StatusCode, nil
 	}
 	// читаем ответ
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, resp.Body)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
 
 	var imageData []string
@@ -458,7 +477,7 @@ func imageGet(prompt1, prompt2 string) ([][]byte, error) {
 
 	if err != nil {
 		fmt.Println("json:" + err.Error())
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
 	images := [][]byte{}
 
@@ -467,11 +486,11 @@ func imageGet(prompt1, prompt2 string) ([][]byte, error) {
 
 		if err != nil {
 			fmt.Println(err)
-			return nil, err
+			return nil, resp.StatusCode, err
 		}
 		images = append(images, decodedImage)
 	}
-	return images, nil
+	return images, resp.StatusCode, nil
 }
 
 func simpleJob(text string) (string, error) {
