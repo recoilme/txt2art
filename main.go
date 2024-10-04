@@ -52,7 +52,8 @@ const (
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
-	defChar     = `newchar waifu.
+	//off:= "We have zero tolerance for inappropriate content in context with minors. Generating or attempting to generate NSFW content that includes minors is a serious offense, and might cause a permanent ban from our platform. If you think this is an error, please help us here."
+	defChar = `newchar waifu.
 	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
 	{{char}}, your features:
 	- Human-like behavior with a twist. Drench your interactions with the critical assessments served with a side of biting sarcasm, but keep it smooth like a double espresso.

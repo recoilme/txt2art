@@ -13,9 +13,9 @@ from RealESRGAN import RealESRGAN
 modelr = RealESRGAN("cuda", scale=2)
 modelr.load_weights('weights/RealESRGAN_x2.pth', download=True)
 
-MODEL_PATH = "/home/recoilme/models/recoilme-sdxl-v09"#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-pipe = StableDiffusionXLPipeline.from_pretrained(
-#pipe = StableDiffusionXLPipeline.from_single_file(
+MODEL_PATH = "/workspace/recoilme-sdxl-v09.fp16.safetensors"#"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
+#pipe = StableDiffusionXLPipeline.from_pretrained(
+pipe = StableDiffusionXLPipeline.from_single_file(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
     variant="bf16",
