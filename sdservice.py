@@ -16,11 +16,11 @@ from PIL import Image
 from datetime import datetime
 
 #MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-MODEL_PATH = "/workspace/recoilme-sdxl-v09.fp16.safetensors"
+MODEL_PATH = "/workspace/recoilme-sdxl-v10.safetensors"
 
 #https://github.com/ai-forever/Real-ESRGAN?tab=readme-ov-file
-modelr = RealESRGAN("cuda", scale=2)
-modelr.load_weights('weights/RealESRGAN_x2.pth', download=True)
+model_esrgan = RealESRGAN("cuda", scale=2)
+model_esrgan.load_weights('weights/RealESRGAN_x2.pth', download=True)
 
 #wd3 tagger
 # Specific model repository from SmilingWolf's collection / Repository Default vit tagger v3
@@ -161,25 +161,29 @@ def encode_images_to_base64(images):
 
 def txt2img(prompt1,prompt2):
     negative_prompt = "worst quality, low quality, text, censored, deformed, bad hand, blurry, watermark, multiple phones, weights, bunny ears, extra hands, extra fingers, deformed fingers"
+    negative_prompt = "loli"
     prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
 
     gc.collect()
     #torch.cuda.empty_cache()
 
     with torch.no_grad():
+        images = []
+        images.clear()
+        #generator = torch.Generator("cuda").seed()
+        
         images = pipe(
-            width = 832,
-            height = 960,
+            width = 832,#832,1024
+            height = 1216,#960,1280
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=20,
-            guidance_scale=5,
-            #generator=torch.Generator(device="cuda").seed(),
+            num_inference_steps=24,
+            guidance_scale=3,
+            #generator=generator,
             num_images_per_prompt=2
         ).images
-        #images[0].save('0.png')
 
         has_minors = False
         has_porn = False
@@ -188,34 +192,59 @@ def txt2img(prompt1,prompt2):
             #wd3 
             minors, porn, nsfw, tags = captions(image)
             if minors:
-                print(minors, porn, nsfw, tags)
+                #print("tags:"+minors+ porn+ nsfw+ tags)
                 has_minors = True
             if porn:
                 has_porn = True
             if nsfw:
                 has_nsfw = True
+
+        if has_minors and has_porn:
+            #images[0].save(datetime.now().strftime("pron/%Y-%m-%d_%H:%M:%S")+'.jpg')
+            images.clear()
             
-            predicted_image = modelr.predict(images[i])
-            images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))#0.625
-
-        if has_minors and (has_nsfw or has_porn):
-            images[0].save(datetime.now().strftime("pron/%Y-%m-%d_%H:%M:%S")+'.jpg')
-            images = []
-
         if len(images)>0:
-            images = img2img_pipe(
-                strength=0.7,
-                steps_offset = 500,
-                prompt_embeds=prompt_embeds,
-                pooled_prompt_embeds=pooled_prompt_embeds,
-                negative_prompt_embeds=prompt_neg_embeds,
-                negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                num_inference_steps=44,
-                guidance_scale=5,
-                guidance_rescale=0.0,
-                num_images_per_prompt=2,
-                image=images,
-            ).images
+            for i in range(2):
+                # upscale *1.25
+                for i, image in enumerate(images):
+                    #2x upscale with ESRGAN
+                    predicted_image = model_esrgan.predict(images[i])
+                    # downscale back
+                    images[i] = predicted_image.resize((int(predicted_image.width * 0.625), int(predicted_image.height * 0.625)))
+                    
+                # restore / add details
+                images = img2img_pipe(
+                    strength=0.7,#0.12, # strength original image
+                    prompt_embeds=prompt_embeds,
+                    pooled_prompt_embeds=pooled_prompt_embeds,
+                    negative_prompt_embeds=prompt_neg_embeds,
+                    negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+                    num_inference_steps=30,#110,#13 steps, total steps * strength
+                    guidance_scale=3,
+                    guidance_rescale=0.0,
+                    #generator=generator,
+                    num_images_per_prompt=len(images),
+                    image=images,
+                ).images
+#        if len(images)>0:
+#            for i, image in enumerate(images):
+#                predicted_image = modelr.predict(images[i])
+#                images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))#0.625
+            
+#            images = img2img_pipe(
+#                strength=0.7,
+#                steps_offset = 500,
+#                prompt_embeds=prompt_embeds,
+#                pooled_prompt_embeds=pooled_prompt_embeds,
+#                negative_prompt_embeds=prompt_neg_embeds,
+#                negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+#                num_inference_steps=30,
+#                guidance_scale=3,
+#                guidance_rescale=0.0,
+#                #generator=generator,
+#                num_images_per_prompt=2,
+#                image=images,
+#            ).images
         
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
@@ -228,8 +257,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body.decode('utf-8'))  # парсим JSON из тела запроса
             prompt1 = data['prompt1']
-            prompt2 = data['prompt2']
-            print("propmt:", prompt1, prompt2)  # печатаем строки
+            prompt2 = ""
+            if len(data)>1:
+                prompt2 = data['prompt2']
+            print("propmt:"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))#, prompt1, prompt2)  # печатаем строки
             images,has_porn = txt2img(prompt1,prompt2)
             if len(images)>0:
                 if has_porn:

@@ -66,13 +66,45 @@ const (
 	{{skillprompt}}
 	{{skilllang}}
 	`
-	skillprompt = `
-	Skill creating prompt:
-	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. When a user requests to draw something without asking questions constructs prompts for generating illustrations as accurately and precisely conveying the essence of their request using rare styles and adding relevant details, but on language:{{lang}}. Ensure your prompt starts with text: "draw:".
-	`
+	//skillprompt = `
+	//Skill creating prompt:
+	//If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. When a user requests to draw something without asking questions constructs prompts for generating illustrations as accurately and precisely conveying the essence of their request using rare styles and adding relevant details, but on language:{{lang}}. Ensure your prompt starts with text: "draw:".
+	//`
 	skilllang = `
 	Skill using language:
 	Use this language:{{lang}} for dialogs with {{user}} by default.
+	`
+	detailed_prompt = `
+	Given a user prompt, generate an "Enhanced prompt" that provides detailed visual descriptions suitable for image
+	generation. Evaluate the level of detail in the user prompt:
+	- If the prompt is simple, focus on adding specifics about colors, shapes, sizes, textures, and spatial relationships to
+	create vivid and concrete scenes.
+	- If the prompt is already detailed, refine and enhance the existing details slightly without overcomplicating.
+	Here are examples of how to transform or refine prompts:
+	- User Prompt: A cat sleeping -> Enhanced: A small, fluffy white cat curled up in a round shape, sleeping peacefully on a
+	warm sunny windowsill, surrounded by pots of blooming red flowers.
+	- User Prompt: A busy city street -> Enhanced: A bustling city street scene at dusk, featuring glowing street lamps, a
+	diverse crowd of people in colorful clothing, and a double-decker bus passing by towering glass skyscrapers.
+	Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	evaluations:
+	User Prompt:%s
+	`
+
+	skillprompt = `
+	Skill creating prompt:
+	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. When a user requests to draw something without asking questions constructs prompt for generating illustration, but on language:{{lang}}. Ensure your prompt starts with text: "draw:".
+	generate an "Enhanced prompt" that provides detailed visual descriptions suitable for image
+	generation. Evaluate the level of detail in the user prompt:
+	- If the prompt is simple, focus on adding specifics about colors, shapes, sizes, textures, and spatial relationships to
+	create vivid and concrete scenes.
+	- If the prompt is already detailed, refine and enhance the existing details slightly without overcomplicating.
+	Here are examples of how to transform or refine prompts:
+	- User Prompt: A cat sleeping -> Enhanced: draw: A small, fluffy white cat curled up in a round shape, sleeping peacefully on a
+	warm sunny windowsill, surrounded by pots of blooming red flowers.
+	- User Prompt: A busy city street -> Enhanced: draw: A bustling city street scene at dusk, featuring glowing street lamps, a
+	diverse crowd of people in colorful clothing, and a double-decker bus passing by towering glass skyscrapers.
+	Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	evaluations
 	`
 
 	help_short = `
@@ -199,11 +231,19 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.HasPrefix(low, "чар ") && !strings.HasPrefix(low, "char ") {
+		if !strings.Contains(low, "нарисуй ") && !strings.Contains(low, "вайфу ") && !strings.Contains(low, "чар ") && !strings.Contains(low, "char ") && !strings.Contains(low, "waifu ") {
 			return
 		}
-		update.Message.Text = strings.TrimSpace(update.Message.Text[4:])
-		fmt.Println("public", update.Message.Text)
+		//update.Message.Text = strings.ReplaceAll(update.Message.Text, "нарисуй ", "")
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "вайфу ", "")
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "чар ", "")
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "char ", "")
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "waifu ", "")
+
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "плотва ", "")
+		update.Message.Text = strings.ReplaceAll(update.Message.Text, "plotva ", "")
+		//update.Message.Text = strings.TrimSpace(update.Message.Text[4:])
+		//fmt.Println("public", update.Message.Text)
 	}
 
 	go producer(dialogChannel, &MsgData{
@@ -286,7 +326,8 @@ func consumerImg(ch chan *MsgData) {
 		if strings.Contains(strings.ToLower(textRu), "майонез") || strings.Contains(strings.ToLower(textEn), "mayonnaise") {
 			paid = true
 		}
-		textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, creative and detailed visual description. Here is your text: %s", textEn))
+		//textPrompt, err = simpleJob(fmt.Sprintf("I want you to act as a prompt generator for Stable Diffusion artificial intelligence program. Your job is to provide only one, creative and detailed visual description. Here is your text: %s", textEn))
+		textPrompt, err = simpleJob(fmt.Sprintf(detailed_prompt, textEn))
 		if err != nil {
 			sendErr(md, err)
 			continue
