@@ -260,7 +260,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             prompt2 = ""
             if len(data)>1:
                 prompt2 = data['prompt2']
-            print("propmt:"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))#, prompt1, prompt2)  # печатаем строки
+            if (len(prompt1)<30 or len(prompt1)>150) and len(prompt2)>75:
+                prompt1 = ""
+            if len(prompt1)>0:
+                prompt2 = ""
+
+            print("propmt:"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),"\n", prompt1,"\n", prompt2)  # печатаем строки
             images,has_porn = txt2img(prompt1,prompt2)
             if len(images)>0:
                 if has_porn:

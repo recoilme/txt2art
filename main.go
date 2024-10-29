@@ -54,7 +54,10 @@ const (
 	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
-	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.`
+	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.
+	
+	Support chat: @charsaichat
+	`
 	defChar = `newchar waifu.
 	You're embodying the virtual essence of a human girl {{char}}. Your vibe is all about critical, sarcastic, yet undeniably charming in your own unique way. 
 	{{char}}, your features:
@@ -440,7 +443,15 @@ func consumer(ch chan *MsgData) {
 			continue
 		}
 
-		htmlText := tg_md2html.MD2HTML(reply)
+		textDraw := getCmd(reply, "draw")
+		if textDraw == "" {
+			textDraw = getCmd(reply, "prompt")
+		}
+
+		htmlText := "ok"
+		if textDraw == "" {
+			htmlText = tg_md2html.MD2HTML(reply)
+		}
 
 		replMsg, err := md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 			ChatID:              md.msg.Chat.ID,
@@ -458,10 +469,6 @@ func consumer(ch chan *MsgData) {
 			continue
 		}
 
-		textDraw := getCmd(reply, "draw")
-		if textDraw == "" {
-			textDraw = getCmd(reply, "prompt")
-		}
 		if textDraw != "" {
 			replMsg.Text = textDraw
 			go producerImg(imageChannel, &MsgData{
@@ -551,7 +558,7 @@ func simpleJob(text string) (string, error) {
 func sendErr(md *MsgData, err error) {
 	md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 		ChatID:              md.msg.Chat.ID,
-		Text:                "Error: " + err.Error(),
+		Text:                "Error: " + err.Error() + "\nSupport: @charsaichat",
 		DisableNotification: true,
 		ReplyParameters: &models.ReplyParameters{
 			MessageID: md.msg.ID,
