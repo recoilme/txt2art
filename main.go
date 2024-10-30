@@ -449,8 +449,12 @@ func consumer(ch chan *MsgData) {
 		}
 
 		htmlText := "ok"
-		if textDraw == "" && len(reply) < 320 {
+		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
+		} else {
+			if len(reply) < 500 {
+				htmlText = tg_md2html.MD2HTML(reply)
+			}
 		}
 
 		replMsg, err := md.b.SendMessage(md.ctx, &bot.SendMessageParams{
