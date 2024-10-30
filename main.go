@@ -113,6 +113,8 @@ const (
 	help_short = `
 Just chat with Char (waifu). To generate an image, ask him/here: "draw something interesting"
 
+You may create your own chars, type help for instructions.
+
 Commands:
  - chars - list chars
  - char name - switch on char
