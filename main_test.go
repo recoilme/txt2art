@@ -65,6 +65,7 @@ func TestMD(t *testing.T) {
 	}
 
 	//fmt.Println(r)
+	fmt.Println("help, ", len(help_short))
 }
 
 func TestNewchar(t *testing.T) {

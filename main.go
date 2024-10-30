@@ -449,7 +449,7 @@ func consumer(ch chan *MsgData) {
 		}
 
 		htmlText := "ok"
-		if textDraw == "" {
+		if textDraw == "" && len(reply) < 320 {
 			htmlText = tg_md2html.MD2HTML(reply)
 		}
 
@@ -558,7 +558,7 @@ func simpleJob(text string) (string, error) {
 func sendErr(md *MsgData, err error) {
 	md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 		ChatID:              md.msg.Chat.ID,
-		Text:                "Error: " + err.Error() + "\nSupport: @charsaichat",
+		Text:                "Error: " + err.Error() + "\nSupport chat: @charsaichat",
 		DisableNotification: true,
 		ReplyParameters: &models.ReplyParameters{
 			MessageID: md.msg.ID,

@@ -180,7 +180,7 @@ def txt2img(prompt1,prompt2):
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
             num_inference_steps=24,
-            guidance_scale=3,
+            guidance_scale=4,
             #generator=generator,
             num_images_per_prompt=2
         ).images
@@ -214,12 +214,12 @@ def txt2img(prompt1,prompt2):
                     
                 # restore / add details
                 images = img2img_pipe(
-                    strength=0.7,#0.12, # strength original image
+                    strength=0.6,#0.12, # strength original image
                     prompt_embeds=prompt_embeds,
                     pooled_prompt_embeds=pooled_prompt_embeds,
                     negative_prompt_embeds=prompt_neg_embeds,
                     negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                    num_inference_steps=30,#110,#13 steps, total steps * strength
+                    num_inference_steps=35,#110,#13 steps, total steps * strength
                     guidance_scale=3,
                     guidance_rescale=0.0,
                     #generator=generator,
