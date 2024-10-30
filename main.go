@@ -452,7 +452,7 @@ func consumer(ch chan *MsgData) {
 		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
 		} else {
-			if len(reply) < 500 {
+			if len(reply) < 500 || strings.ContainsAny(reply, "help") {
 				htmlText = tg_md2html.MD2HTML(reply)
 			}
 		}
