@@ -454,6 +454,8 @@ func consumer(ch chan *MsgData) {
 		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
 		} else {
+			fmt.Println("draw", md.msg.From.ID, md.msg.From.Username, md.msg.From.FirstName, md.msg.From.LastName, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 125))
+
 			if len(reply) < 500 || strings.ContainsAny(reply, "help") {
 				htmlText = tg_md2html.MD2HTML(reply)
 			}
@@ -604,7 +606,7 @@ func truncateString(s string, total int) string {
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
 	uData := userData[from]
-	fmt.Println(md.msg.From.Username, time.Now().Format(time.RFC822))
+	fmt.Println(md.msg.From.ID, md.msg.From.Username, md.msg.From.FirstName, md.msg.From.LastName, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 125))
 	if uData.Id == 0 {
 		//new user
 		uData.Id = from

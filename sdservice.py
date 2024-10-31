@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
-from diffusers import StableDiffusionXLPipeline,StableDiffusionXLImg2ImgPipeline
+from diffusers import StableDiffusionXLPipeline,StableDiffusionXLImg2ImgPipeline,AutoPipelineForText2Image,AutoPipelineForImage2Image
 from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl_2p
 from sd_embed.embedding_funcs import get_weighted_text_embeddings_sdxl
 from diffusers import EulerAncestralDiscreteScheduler
@@ -16,7 +16,7 @@ from PIL import Image
 from datetime import datetime
 
 #MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-MODEL_PATH = "/workspace/recoilme-sdxl-v10.safetensors"
+MODEL_PATH = "/workspace/recoilme-sdxl-v10"
 
 #https://github.com/ai-forever/Real-ESRGAN?tab=readme-ov-file
 model_esrgan = RealESRGAN("cuda", scale=2)
@@ -123,11 +123,12 @@ def captions(image):
 
 #"/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
 #pipe = StableDiffusionXLPipeline.from_pretrained(
-pipe = StableDiffusionXLPipeline.from_single_file(
+pipe = AutoPipelineForText2Image.from_pretrained(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
     variant="bf16",
-    use_safetensors=True
+    use_safetensors=True,
+    enable_pag=True
 ).to("cuda")
 pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config,
@@ -137,7 +138,7 @@ pipe.enable_vae_slicing()
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
-img2img_pipe = StableDiffusionXLImg2ImgPipeline.from_pipe(
+img2img_pipe = AutoPipelineForImage2Image.from_pipe(
     pipe
 )
 
@@ -180,7 +181,8 @@ def txt2img(prompt1,prompt2):
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
             num_inference_steps=24,
-            guidance_scale=4,
+            guidance_scale=3,
+            pag_scale=2.0,
             #generator=generator,
             num_images_per_prompt=2
         ).images
@@ -220,31 +222,13 @@ def txt2img(prompt1,prompt2):
                     negative_prompt_embeds=prompt_neg_embeds,
                     negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
                     num_inference_steps=35,#110,#13 steps, total steps * strength
-                    guidance_scale=3,
+                    guidance_scale=2,
+                    pag_scale=2.0,
                     guidance_rescale=0.0,
                     #generator=generator,
                     num_images_per_prompt=len(images),
                     image=images,
                 ).images
-#        if len(images)>0:
-#            for i, image in enumerate(images):
-#                predicted_image = modelr.predict(images[i])
-#                images[i] = predicted_image.resize((int(predicted_image.width * 0.75), int(predicted_image.height * 0.75)))#0.625
-            
-#            images = img2img_pipe(
-#                strength=0.7,
-#                steps_offset = 500,
-#                prompt_embeds=prompt_embeds,
-#                pooled_prompt_embeds=pooled_prompt_embeds,
-#                negative_prompt_embeds=prompt_neg_embeds,
-#                negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-#                num_inference_steps=30,
-#                guidance_scale=3,
-#                guidance_rescale=0.0,
-#                #generator=generator,
-#                num_images_per_prompt=2,
-#                image=images,
-#            ).images
         
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
