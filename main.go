@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -43,8 +44,16 @@ type UserData struct {
 	User          string              `json:"user"`
 	Char          CharData            `json:"chardata"`
 	Lang          string              `json:"lang"`
+	LastVisit     int64               `json:"lastvisit"`
+	LastDraw      int64               `json:"lastdraw"`
+	TodayDraw     int64               `json:"todaydraw"`
 	Chars         map[string]CharData `json:"chars"`
 	Conversations []llm.Message       `json:"conversations"`
+}
+
+type UserDataMap struct {
+	sync.RWMutex
+	data map[int64]UserData
 }
 
 const (
@@ -69,10 +78,7 @@ const (
 	{{skillprompt}}
 	{{skilllang}}
 	`
-	//skillprompt = `
-	//Skill creating prompt:
-	//If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. When a user requests to draw something without asking questions constructs prompts for generating illustrations as accurately and precisely conveying the essence of their request using rare styles and adding relevant details, but on language:{{lang}}. Ensure your prompt starts with text: "draw:".
-	//`
+
 	skilllang = `
 	Skill using language:
 	Use this language:{{lang}} for dialogs with {{user}} by default.
@@ -116,11 +122,12 @@ Just chat with Char (waifu). To generate an image, ask him/here: "draw something
 You may create your own chars, type help for instructions.
 
 Commands:
+ - draw,prompt - draw something
  - chars - list chars
  - char name - switch on char
  - newchar name - create/update char 
  - delchar name - delete char
- - lang newlang - switch language 
+ - lang newlang - switch language
  - help - full help screen with examples
 	`
 	help = `
@@ -169,7 +176,7 @@ Prompts:   https://huggingface.co/datasets/fka/awesome-chatgpt-prompts
 var (
 	dialogChannel = make(chan *MsgData, 100)
 	imageChannel  = make(chan *MsgData, 10)
-	userData      = map[int64]UserData{}
+	uData         = &UserDataMap{data: map[int64]UserData{}}
 )
 
 func main() {
@@ -205,8 +212,8 @@ func main() {
 
 func fallback() error {
 	fmt.Println("fallback")
-	for i := range userData {
-		saveUData(userData[i])
+	for i := range userDataData() {
+		saveUData(userDataGet(i))
 	}
 	fmt.Println("stop")
 	return nil
@@ -364,6 +371,10 @@ func consumerImg(ch chan *MsgData) {
 		if statusCode == 210 {
 			paid = true
 		}
+		uData := userDataGet(md.msg.From.ID)
+		if uData.TodayDraw > 20 {
+			paid = true
+		}
 		if statusCode == 204 {
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID:              md.msg.Chat.ID,
@@ -454,8 +465,6 @@ func consumer(ch chan *MsgData) {
 		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
 		} else {
-			fmt.Println("draw", md.msg.From.ID, md.msg.From.Username, md.msg.From.FirstName, md.msg.From.LastName, time.Now().Format(time.RFC822), truncateString(reply, 125))
-
 			if len(reply) < 500 || strings.ContainsAny(reply, "help") {
 				htmlText = tg_md2html.MD2HTML(reply)
 			}
@@ -479,6 +488,24 @@ func consumer(ch chan *MsgData) {
 
 		if textDraw != "" {
 			replMsg.Text = textDraw
+			fmt.Println("draw", md.msg.From.ID, md.msg.From.Username, time.Now().Format(time.RFC822), truncateString(reply, 100)+"\n")
+
+			uData := userDataGet(md.msg.From.ID)
+			lastVisitDay := time.Unix(uData.LastVisit, 0).Format("20060102")
+			if lastVisitDay == time.Now().Format("20060102") {
+				uData.TodayDraw += 1
+			} else {
+				uData.TodayDraw = 1
+			}
+
+			if time.Since(time.Unix(uData.LastDraw, 0)) < time.Duration(1*time.Minute) {
+				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Извините, но мне нужно вас немного притормозить.. "))
+				continue
+			}
+
+			uData.LastDraw = time.Now().Unix()
+			userDataSet(md.msg.From.ID, uData)
+
 			go producerImg(imageChannel, &MsgData{
 				ctx: md.ctx,
 				b:   md.b,
@@ -499,8 +526,6 @@ func imageGet(prompt1, prompt2 string) ([][]byte, int, error) {
 		Prompt1: prompt1,
 		Prompt2: prompt2,
 	})
-
-	//fmt.Println(string(jsonData))
 	// создаем запрос
 	req, err := http.NewRequest("POST", SDHost, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -516,7 +541,7 @@ func imageGet(prompt1, prompt2 string) ([][]byte, int, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		return nil, resp.StatusCode, fmt.Errorf("service is down, http code:%d", resp.StatusCode)
+		return nil, resp.StatusCode, fmt.Errorf("something wrong with image generation, try later. http code:%d", resp.StatusCode)
 	}
 	if resp.StatusCode == 204 {
 		return nil, resp.StatusCode, nil
@@ -583,7 +608,6 @@ func sendErr(md *MsgData, err error) {
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
 		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r)) {
-			//fmt.Println(string(r), r, unicode.Is(unicode.Latin, r))
 			return true
 		}
 	}
@@ -605,8 +629,9 @@ func truncateString(s string, total int) string {
 
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
-	uData := userData[from]
-	fmt.Println(md.msg.From.ID, md.msg.From.Username, md.msg.From.FirstName, md.msg.From.LastName, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 125))
+	uData := userDataGet(from)
+	defer userDataSet(from, uData)
+	fmt.Println(md.msg.From.ID, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 100)+"\n")
 	if uData.Id == 0 {
 		//new user
 		uData.Id = from
@@ -615,6 +640,7 @@ func dialogJob(md *MsgData) (string, error) {
 			uData.User = md.msg.From.Username
 		}
 		uData.Lang = md.msg.From.LanguageCode
+		uData.LastVisit = time.Now().Unix()
 		backUp, err := os.ReadFile(fmt.Sprintf("data/%d.json", uData.Id))
 		if err == nil {
 			//has backup
@@ -641,6 +667,8 @@ func dialogJob(md *MsgData) (string, error) {
 
 		saveUData(uData)
 	}
+	uData.LastVisit = time.Now().Unix()
+
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "newchar ") {
 		char, err := parseChar(md.msg.Text, uData.User, uData.Lang)
 		if err != nil {
@@ -654,8 +682,7 @@ func dialogJob(md *MsgData) (string, error) {
 		}
 		uData.Chars[char.Name] = char
 		saveUData(uData)
-		userData[from] = uData
-		return "New char:" + userData[from].Char.Name + "\n\nTemplate:\n```" + userData[from].Char.Template + "```", nil
+		return "New char:" + uData.Char.Name + "\n\nTemplate:\n```" + uData.Char.Template + "```", nil
 	}
 	charNames := make([]string, 0)
 	if uData.Chars != nil {
@@ -670,17 +697,14 @@ func dialogJob(md *MsgData) (string, error) {
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "char ") {
 		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
 		person := strings.TrimSpace(spl[1])
-		//fmt.Println(fmt.Sprintf("person '%+v'\n", person))
 		for _, name := range charNames {
 			if name == person {
 				char := uData.Chars[name]
 				uData.Conversations[0] = llm.Message{Role: "system", Content: char.Char}
 				uData.Conversations = uData.Conversations[:1]
-				userData[from] = uData
 				return "switched on character:" + person + "\nHistory cleaned", nil
 			}
 		}
-		userData[from] = uData
 		return fmt.Sprintf("charcter '%+v' not found\n", person), nil
 	}
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "delchar ") {
@@ -689,7 +713,6 @@ func dialogJob(md *MsgData) (string, error) {
 		for _, name := range charNames {
 			if name == person {
 				delete(uData.Chars, name)
-				userData[from] = uData
 				saveUData(uData)
 				return "deleted character:" + person, nil
 			}
@@ -710,7 +733,6 @@ func dialogJob(md *MsgData) (string, error) {
 		spl := strings.Split(strings.ToLower(md.msg.Text), " ")
 		lang := strings.TrimSpace(spl[1])
 		uData.Lang = lang
-		userData[from] = uData
 		saveUData(uData)
 		return "new language:" + lang, nil
 	}
@@ -722,11 +744,6 @@ func dialogJob(md *MsgData) (string, error) {
 	if len(uData.Conversations) >= 9 {
 		uData.Conversations = append(uData.Conversations[:1], uData.Conversations[len(uData.Conversations)-2:]...)
 	}
-	//for i := range uData.Conversations {
-	//	if i%2 != 0 {
-	//		fmt.Printf("%d:%s\n", i, uData.Conversations[i].Content)
-	//	}
-	//}
 
 	uData.Conversations = append(uData.Conversations, llm.Message{Role: "user", Content: md.msg.Text})
 
@@ -750,12 +767,10 @@ func dialogJob(md *MsgData) (string, error) {
 		},
 	)
 	uData.Conversations = append(uData.Conversations, llm.Message{Role: "assistant", Content: answer.Message.Content})
-	userData[from] = uData
 	return answer.Message.Content, err
 }
 
 func getCmd(text, cmd string) string {
-	//text = strings.ToLower(text)
 	draw := ""
 	fields := strings.Fields(text)
 	text = strings.Join(fields, " ")
@@ -797,4 +812,22 @@ func parseChar(txt, user, lang string) (CharData, error) {
 	txt = strings.ReplaceAll(txt, "on language:ru", "на русском языке")
 	char.Char = txt
 	return char, nil
+}
+
+func userDataGet(id int64) UserData {
+	uData.RWMutex.RLock()
+	defer uData.RWMutex.RUnlock()
+	return uData.data[id]
+}
+
+func userDataSet(id int64, userData UserData) {
+	uData.RWMutex.Lock()
+	defer uData.RWMutex.Unlock()
+	uData.data[id] = userData
+}
+
+func userDataData() map[int64]UserData {
+	uData.RWMutex.RLock()
+	defer uData.RWMutex.RUnlock()
+	return uData.data
 }

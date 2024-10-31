@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	tg_md2html "github.com/PaulSonOfLars/gotg_md2html"
 )
@@ -89,4 +90,13 @@ newchar Алиса
 	if cd.Name != "zelda" {
 		t.Errorf("cd:'%+v'\n", cd)
 	}
+}
+
+func TestTime(t *testing.T) {
+	now := time.Now().Unix()
+	now2 := time.Now().Unix()
+	strT := time.Unix(now, 0)
+	strT2 := time.Unix(now2, 0)
+	_ = strT2
+	fmt.Println("time", strT.Format("20060102") == strT2.Format("20060102"), time.Since(strT) > time.Duration(1000*time.Millisecond))
 }
