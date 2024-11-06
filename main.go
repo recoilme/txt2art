@@ -373,6 +373,17 @@ func consumerImg(ch chan *MsgData) {
 			paid = true
 		}
 		uData := userDataGet(md.msg.From.ID)
+		if uData.TodayDraw == 20 {
+			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
+				ChatID:              md.msg.Chat.ID,
+				Text:                "Congratulations! You have reached the limit of free image generations for today! Subsequent generations will be closed with an asterisk. Please support our project\n Поздравляем! Вы исчерпали лимит бесплатных генераций на сегодня! Последующие генерации будут закрыты звездочкой. Пожалуйста, поддержите наш проект" + "\nSupport chat: @charsaichat",
+				DisableNotification: true,
+				ReplyParameters: &models.ReplyParameters{
+					MessageID: md.msg.ID,
+					ChatID:    md.msg.Chat.ID,
+				},
+			})
+		}
 		if uData.TodayDraw > 20 {
 			paid = true
 		}
