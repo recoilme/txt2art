@@ -16,7 +16,7 @@ from PIL import Image
 from datetime import datetime
 
 #MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-MODEL_PATH = "/workspace/recoilme-sdxl-v10"
+MODEL_PATH = "recoilme/recoilme-sdxl-v11"
 
 #https://github.com/ai-forever/Real-ESRGAN?tab=readme-ov-file
 model_esrgan = RealESRGAN("cuda", scale=2)
@@ -126,7 +126,7 @@ def captions(image):
 pipe = AutoPipelineForText2Image.from_pretrained(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
-    variant="bf16",
+    variant="fp16",
     use_safetensors=True,
     enable_pag=True
 ).to("cuda")
@@ -174,13 +174,13 @@ def txt2img(prompt1,prompt2):
         #generator = torch.Generator("cuda").seed()
         
         images = pipe(
-            width = 832,#832,1024
+            width = 960,#832,1024
             height = 1216,#960,1280
             prompt_embeds=prompt_embeds,
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=24,
+            num_inference_steps=30,
             guidance_scale=3,
             pag_scale=2.0,
             #generator=generator,
@@ -206,7 +206,7 @@ def txt2img(prompt1,prompt2):
             images.clear()
             
         if len(images)>0:
-            for i in range(2):
+            for i in range(1):
                 # upscale *1.25
                 for i, image in enumerate(images):
                     #2x upscale with ESRGAN
@@ -216,12 +216,12 @@ def txt2img(prompt1,prompt2):
                     
                 # restore / add details
                 images = img2img_pipe(
-                    strength=0.6,#0.12, # strength original image
+                    strength=0.5,#0.12, # strength original image
                     prompt_embeds=prompt_embeds,
                     pooled_prompt_embeds=pooled_prompt_embeds,
                     negative_prompt_embeds=prompt_neg_embeds,
                     negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                    num_inference_steps=35,#110,#13 steps, total steps * strength
+                    num_inference_steps=40,#110,#13 steps, total steps * strength
                     guidance_scale=2,
                     pag_scale=2.0,
                     guidance_rescale=0.0,
@@ -244,7 +244,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             prompt2 = ""
             if len(data)>1:
                 prompt2 = data['prompt2']
-            if (len(prompt1)<30 or len(prompt1)>150) and len(prompt2)>75:
+            if (len(prompt1)<30 or len(prompt1)>512) and len(prompt2)>75:
                 prompt1 = ""
             if len(prompt1)>0:
                 prompt2 = ""
