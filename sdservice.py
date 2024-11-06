@@ -246,6 +246,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 prompt2 = data['prompt2']
             if (len(prompt1)<30 or len(prompt1)>512) and len(prompt2)>75:
                 prompt1 = ""
+            if prompt1.startswith('(something interesting"') and len(prompt2)>75:
+                prompt1 = ""
             if len(prompt1)>0:
                 prompt2 = ""
 
