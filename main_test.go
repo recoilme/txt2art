@@ -9,9 +9,9 @@ import (
 )
 
 func TestEng(t *testing.T) {
-	test := `Ultra-detailed, photorealistic FullHD, fisheye lens, cinematic lighting, wet process, cinematic postprocess, wide gamut colors, heavy contrast, overexposed, underexposed, of 
+	test := `Ultra-detailed,"\' photorealistic FullHD, fisheye lens, cinematic lighting, wet process, cinematic postprocess, wide gamut colors, heavy contrast, overexposed, underexposed, of 
 
-		FUTURAMA ONE LOVE`
+		FUTURAMA ONE LOVE  🤗💋✨️🎉🎁 You may create your own chars, type help for instructions. Commands: - draw,prompt - draw something - chars - list chars - char name - switch on char - newchar name - create/update char - delchar name - delete char - lang newlang - switch language - help - full help screen with examples)`
 	got := hasNonEnglish(test)
 	if got == true {
 		t.Error("has")

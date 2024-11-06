@@ -174,7 +174,7 @@ Prompts:   https://huggingface.co/datasets/fka/awesome-chatgpt-prompts
 
 var (
 	dialogChannel = make(chan *MsgData, 100)
-	imageChannel  = make(chan *MsgData, 10)
+	imageChannel  = make(chan *MsgData, 25)
 	uData         = &UserDataMap{data: map[int64]UserData{}}
 )
 
@@ -275,7 +275,7 @@ func producer(ch chan *MsgData, md *MsgData) {
 			Action: models.ChatActionTyping,
 		})
 	default:
-		sendErr(md, errors.New("channel full, wait a little"))
+		sendErr(md, errors.New("Dialog channel is full (>100 in queue), wait a little please.."))
 	}
 }
 
@@ -300,7 +300,7 @@ func producerImg(ch chan *MsgData, md *MsgData) {
 	select {
 	case ch <- md: // Put in the channel unless it is full
 	default:
-		sendErr(md, errors.New("channel full, wait a little"))
+		sendErr(md, errors.New("Image generation channel is full, wait a little please"))
 	}
 }
 
@@ -500,7 +500,7 @@ func consumer(ch chan *MsgData) {
 			}
 
 			if time.Since(time.Unix(uData.LastDraw, 0)) < time.Duration(1*time.Minute) {
-				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Извините, но мне нужно вас немного притормозить.. "))
+				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Tima since last draw < minute.. Извините, но мне нужно вас немного притормозить.. Вы рисуете слишком быстро "))
 				continue
 			}
 
@@ -608,7 +608,8 @@ func sendErr(md *MsgData, err error) {
 }
 func hasNonEnglish(text string) bool {
 	for _, r := range text {
-		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r)) {
+		if !(unicode.Is(unicode.Latin, r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r) || unicode.IsGraphic(r)) {
+			//fmt.Println("r", r, unicode.IsGraphic(r))
 			return true
 		}
 	}
@@ -772,10 +773,6 @@ func dialogJob(md *MsgData) (string, error) {
 }
 
 func getCmd(text, cmd string) string {
-	if strings.Contains(text, "something interesting\"") {
-		//message from help screen
-		return ""
-	}
 	draw := ""
 	fields := strings.Fields(text)
 	text = strings.Join(fields, " ")
