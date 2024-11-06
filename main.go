@@ -135,9 +135,9 @@ Just chat with Char. To generate an image, ask him: "draw something interesting"
 Commands:
  - chars - list chars
  - char name - switch on char
- - newchar name - create/update char 
- - delchar name - delete char
- - lang newlang - switch language 
+ - newchar name - create/update char with name
+ - delchar name - delete char with name
+ - lang Русский - switch language on Русский (or any other)
  - help - this screen
 
 Welcome to our chat: @charsaichat
@@ -462,7 +462,7 @@ func consumer(ch chan *MsgData) {
 			textDraw = getCmd(reply, "prompt")
 		}
 
-		htmlText := "ok"
+		htmlText := fmt.Sprintf("ok, %d in queue", len(imageChannel))
 		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
 		} else {
@@ -812,6 +812,8 @@ func parseChar(txt, user, lang string) (CharData, error) {
 	txt = strings.ReplaceAll(txt, "{{char}}", charName)
 	txt = strings.ReplaceAll(txt, "{{lang}}", lang)
 	txt = strings.ReplaceAll(txt, "on language:ru", "на русском языке")
+	txt = strings.ReplaceAll(txt, "on language:en", "on English")
+	txt = strings.ReplaceAll(txt, "on language:newlang", "on English")
 	char.Char = txt
 	return char, nil
 }
