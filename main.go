@@ -511,7 +511,7 @@ func consumer(ch chan *MsgData) {
 			}
 
 			if time.Since(time.Unix(uData.LastDraw, 0)) < time.Duration(1*time.Minute) {
-				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Tima since last draw < minute.. Извините, но мне нужно вас немного притормозить.. Вы рисуете слишком быстро "))
+				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Time since last draw < 1 minute..\nИзвините, но мне нужно вас немного притормозить.. Вы рисуете слишком быстро для меня"))
 				continue
 			}
 
