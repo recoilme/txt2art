@@ -84,8 +84,7 @@ const (
 	`
 	detailed_prompt = `
 	Given a user prompt, generate an "Enhanced prompt", on English, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
-	evaluations:
-	User Prompt:%s
+	evaluations. User Prompt:%s
 	`
 
 	skillprompt = `
@@ -495,7 +494,7 @@ func consumer(ch chan *MsgData) {
 			}
 
 			uData.LastDraw = time.Now().Unix()
-			userDataSet(md.msg.From.ID, uData)
+			userDataSet(md.msg.From.ID, &uData)
 
 			go producerImg(imageChannel, &MsgData{
 				ctx: md.ctx,
@@ -622,7 +621,7 @@ func truncateString(s string, total int) string {
 func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
 	uData := userDataGet(from)
-	defer userDataSet(from, uData)
+	defer userDataSet(from, &uData)
 	fmt.Println(md.msg.From.ID, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 100)+"\n")
 	if uData.Id == 0 {
 		//new user
@@ -814,10 +813,10 @@ func userDataGet(id int64) UserData {
 	return uData.data[id]
 }
 
-func userDataSet(id int64, userData UserData) {
+func userDataSet(id int64, userData *UserData) {
 	uData.RWMutex.Lock()
 	defer uData.RWMutex.Unlock()
-	uData.data[id] = userData
+	uData.data[id] = *userData
 }
 
 func userDataData() map[int64]UserData {
