@@ -20,7 +20,7 @@ MODEL_PATH = "recoilme/recoilme-sdxl-v11"
 
 #wd3 tagger
 # Specific model repository from SmilingWolf's collection / Repository Default vit tagger v3
-VIT_MODEL_DSV3_REPO = "SmilingWolf/wd-vit-tagger-v3"
+VIT_MODEL_DSV3_REPO = "SmilingWolf/wd-vit-large-tagger-v3"#"SmilingWolf/wd-vit-tagger-v3"
 MODEL_FILENAME = "model.onnx"
 LABEL_FILENAME = "selected_tags.csv"
 
@@ -117,10 +117,10 @@ def captions(image):
 #pipe = StableDiffusionXLPipeline.from_pretrained(
 pipe = AutoPipelineForText2Image.from_pretrained(
     MODEL_PATH,
-    torch_dtype=torch.bfloat16,
+    torch_dtype=torch.float16,
     variant="fp16",
-    use_safetensors=True
-    #enable_pag=True
+    use_safetensors=True,
+    enable_pag=True
 ).to("cuda")
 pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config, timestep_spacing="trailing"
@@ -233,7 +233,7 @@ def bislerp(samples, width, height):
     return result.to(orig_dtype)
 
 def txt2img(prompt1,prompt2):
-    negative_prompt = "blurry, animation, 3d render, toy, puppet, claymation, low quality, flag, nasa, mission patch, non-paradoxical, loli"
+    negative_prompt = "loli, bad anatomy, blurred, extra limbs, low quality, noise, overexposed, poorly lit, signature, unnatural, watermark"
     prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds =  get_weighted_text_embeddings_sdxl(pipe, prompt = prompt1+prompt2, neg_prompt = negative_prompt)
     gc.collect()
 
@@ -242,6 +242,10 @@ def txt2img(prompt1,prompt2):
         images.clear()
         generator = torch.Generator()
         generator.manual_seed(int(time.time()))
+
+        training_refiner_strength = 0.35
+        num_inference_steps = 46
+        base_model_power = 1 - training_refiner_strength
         
         images = pipe(
             width = 960,#832,1024
@@ -250,10 +254,25 @@ def txt2img(prompt1,prompt2):
             pooled_prompt_embeds=pooled_prompt_embeds,
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=16,
-            guidance_scale=1.5,
+            num_inference_steps=num_inference_steps,
+            denoising_end=base_model_power,
+            guidance_scale=4.5,
+            pag_scale=0.8,
             generator=generator,
-            num_images_per_prompt=2,
+            num_images_per_prompt=1,
+            output_type="latent"
+        ).images
+
+        images = img2img_pipe(
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=prompt_neg_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=num_inference_steps,
+            denoising_start=base_model_power,
+            guidance_scale=2.6,
+            pag_scale=1.4,
+            image=images,
             output_type="latent"
         ).images
         
@@ -272,7 +291,7 @@ def txt2img(prompt1,prompt2):
                     negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
                     num_inference_steps=32,#110,#13 steps, total steps * strength
                     guidance_scale=2.6,
-                    pag_scale=1.25,
+                    pag_scale=1.4,
                     guidance_rescale=0.0,
                     #generator=generator,
                     num_images_per_prompt=len(images),
@@ -280,11 +299,16 @@ def txt2img(prompt1,prompt2):
                 ).images
 
         has_minors = False
+        if "young" in (prompt1+prompt2):
+            has_minors = True
+        if "teenage" in (prompt1+prompt2):
+            has_minors = True
         has_porn = False
         has_nsfw = False
         for i, image in enumerate(images):
             #wd3 
             minors, porn, nsfw, tags = captions(image)
+            #print(tags)
             if minors:
                 #print("tags:"+minors+ porn+ nsfw+ tags)
                 has_minors = True
@@ -295,7 +319,7 @@ def txt2img(prompt1,prompt2):
 
         if has_minors and has_porn:
             images.clear()
-        
+        print("clear", len(images))
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
         
@@ -313,8 +337,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 prompt2 = data['prompt2']
             if len(prompt2)>75:
                 prompt1 = ""
-
-            print("propmt:"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),"\n", prompt1,"\n", prompt2)  # печатаем строки
+            #print("propmt:"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),"\n", prompt1,"\n", prompt2)  # печатаем строки
             images,has_porn = txt2img(prompt1,prompt2)
             if len(images)>0:
                 if has_porn:
@@ -340,14 +363,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run_server(port):
     #warmup
-    text = "a portrait of a pround confident person, an elderly mariner, fully clothed, epic moustache, red rugged sweater, knitted warm cap, with both hands showing a large heavy tropical fish. breathtaking scenery of wildlife lakes. The sun is setting behind him, great light, delicate, shiny, elegant, intricate, rendered in a realistic photo, bold color contrasts, dark background, hyperdetailed, cinematic, dramatic lighting, high resolution, detailed, 4k"
-    #text = "Stylized anime art depicting an armored mosquito with metallic plates, cone-shaped stainless steel helm wielding miniature blade against moonlit jungle backdrop."
+    text = "((handjob)), (A charming and innocent young teenage girl of 13 years old with a naked body, standing against the background of a light sky. Sunbeams play behind her back. Depict her as a naive girl from a fairy tale with sweet facial features. Emphasize the fragility and innocence of the child's body in this situation)"
+    text = "Stylized anime art depicting an armored mosquito with metallic plates, cone-shaped stainless steel helm wielding miniature blade against moonlit jungle backdrop."
     #text = "A stunning 4K HDR anime-style illustration of alluring waifu with silvery bob, emerald eyes & porcelain skin in futuristic white dress revealing sculpted shoulders; circuitry patterns hint at her advanced AI nature beneath a human exterior - dreamlike soft focus effect enhances the art's appeal and ambiance ."
     images,pron = txt2img(text,"")
     print("len",len(images))
-    if len(images)>1:
+    if len(images)>0:
         images[0].save(datetime.now().strftime("pron/start_%Y-%m-%d_%H:%M:%S")+'1.jpg')
-        images[1].save(datetime.now().strftime("pron/start_%Y-%m-%d_%H:%M:%S")+'2.jpg')
     server_address = ('', port)
     httpd = HTTPServer(server_address, RequestHandler)
     print('Сервер запущен на порту', port)

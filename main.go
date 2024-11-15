@@ -404,8 +404,8 @@ func consumerImg(ch chan *MsgData) {
 		}
 		medias := make([]models.InputMedia, 0, 2)
 		for i, v := range imgData {
-			caption := textEn + textPrompt
-			caption = truncateString(md.msg.ReplyToMessage.Text+"\n\n"+caption, 876)
+			caption := textPrompt //textEn + textPrompt
+			caption = truncateString(caption, 255)
 			medias = append(medias, &models.InputMediaPhoto{
 				Media:           fmt.Sprintf("attach://%d_%d.png", md.msg.ID, i),
 				Caption:         caption,
