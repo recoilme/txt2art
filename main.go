@@ -60,7 +60,7 @@ const (
 	SDHost      = "http://127.0.0.1:8882"
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
-	OllamaModel = "rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
 	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.
