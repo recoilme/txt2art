@@ -83,14 +83,14 @@ const (
 	Use this language:{{lang}} for dialogs with {{user}} by default.
 	`
 	detailed_prompt = `
-	Given a user prompt, generate an "Enhanced prompt", on English, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	Given a user prompt, generate an "Enhanced prompt", on English language, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
 	evaluations. User Prompt:%s
 	`
 
 	skillprompt = `
 	Skill creating prompt:
-	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. When a user requests to draw something without asking questions constructs prompt for generating illustration, but on language:{{lang}}. Ensure your prompt starts with text: "draw:".
-	generate an "Enhanced prompt" that provides detailed visual descriptions suitable for image generation. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or evaluations. Ensure your prompt starts with text: "draw:"
+	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. Generate an "Enhanced prompt", on English language, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	evaluations, but on English language. Ensure your prompt starts with text: "draw:".
 	`
 
 	help_short = `
