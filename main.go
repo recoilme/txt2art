@@ -89,8 +89,8 @@ const (
 
 	skillprompt = `
 	Skill creating prompt:
-	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. Generate an "Enhanced prompt", on English language, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
-	evaluations, but on English language. Ensure your prompt starts with text: "draw:".
+	If {{user}} ask you draw something - act as a Stable Diffusion Prompt Generator. Generate an "Enhanced prompt" on English language, that provides visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	evaluations. Ensure your prompt starts with text: "draw:".
 	`
 
 	help_short = `
