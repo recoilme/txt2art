@@ -60,7 +60,7 @@ const (
 	SDHost      = "http://127.0.0.1:8882"
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
-	OllamaModel = "gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"josie" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "saiga" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"josie" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
 	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.
@@ -202,7 +202,7 @@ func saveUData(uData UserData) {
 		fmt.Println("err MarshalIndent", err)
 		return
 	}
-	f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
+	f, err := os.Create(fmt.Sprintf("data2/%d.json", uData.Id))
 	if err != nil {
 		fmt.Println("err Create", err)
 		return
@@ -349,7 +349,7 @@ func consumerImg(ch chan *MsgData) {
 		if statusCode == 210 {
 			paid = true
 		}
-		uData := userDataGet(md.msg.From.ID)
+		uData := userDataGet(md.msg.ReplyToMessage.From.ID)
 		if uData.TodayDraw == 20 {
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID:              md.msg.Chat.ID,
@@ -454,7 +454,7 @@ func consumer(ch chan *MsgData) {
 		if textDraw == "" {
 			htmlText = tg_md2html.MD2HTML(reply)
 		} else {
-			if len(reply) < 500 || strings.ContainsAny(reply, "help") {
+			if len(reply) < 100 || strings.ContainsAny(reply, "help") {
 				htmlText = tg_md2html.MD2HTML(reply)
 			}
 		}
@@ -487,8 +487,8 @@ func consumer(ch chan *MsgData) {
 				uData.TodayDraw = 1
 			}
 
-			if time.Since(time.Unix(uData.LastDraw, 0)) < time.Duration(1*time.Minute) {
-				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little.. Time since last draw < 1 minute..\nИзвините, но мне нужно вас немного притормозить.. Вы рисуете слишком быстро для меня"))
+			if time.Since(time.Unix(uData.LastDraw, 0)) < time.Duration(30*time.Second) {
+				sendErr(md, fmt.Errorf("Sorry, but i need slow down you a little..\nИзвините, Вы рисуете слишком быстро для меня"))
 				continue
 			}
 
@@ -631,7 +631,7 @@ func dialogJob(md *MsgData) (string, error) {
 		}
 		uData.Lang = md.msg.From.LanguageCode
 		uData.LastVisit = time.Now().Unix()
-		backUp, err := os.ReadFile(fmt.Sprintf("data/%d.json", uData.Id))
+		backUp, err := os.ReadFile(fmt.Sprintf("data2/%d.json", uData.Id))
 		if err == nil {
 			//has backup
 			u := UserData{}

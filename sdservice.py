@@ -126,6 +126,7 @@ pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config, timestep_spacing="trailing"
 )
 pipe.enable_vae_slicing()
+pipe.enable_model_cpu_offload()
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
