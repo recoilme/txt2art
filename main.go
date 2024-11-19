@@ -765,7 +765,7 @@ func getCmd(text, cmd string) string {
 	fields := strings.Fields(text)
 	text = strings.Join(fields, " ")
 
-	pos := strings.Index(text, cmd)
+	pos := strings.Index(strings.ToLower(text), cmd)
 	if pos == -1 {
 		return ""
 	}
