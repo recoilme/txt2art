@@ -57,7 +57,7 @@ type UserDataMap struct {
 }
 
 const (
-	SDHost      = "http://127.0.0.1:8882"
+	SDHost      = "http://127.0.0.1:8881"
 	SDTimeout   = 120
 	OllamaHost  = "http://127.0.0.1:11434"
 	OllamaModel = "saiga" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"josie" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
