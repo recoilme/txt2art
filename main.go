@@ -89,7 +89,7 @@ const (
 
 	skillprompt = `
 	Skill creating prompt:
-	If {{user}} ask you draw something act as an expert translator specializing in high-quality translations of prompts into English for image generation. I will speak to you in any language and you will detect the language, translate it and adapt for image generation. I want you to only reply the translated on English prompt text and nothing else, do not write explanations. Ensure your translated prompt starts with text: "draw:" and on English.
+	If {{user}} ask you draw something create prompt for image generation with Stable Diffusion on English. Ensure your prompt on English and starts with text: "draw:".
 	`
 
 	help_short = `
