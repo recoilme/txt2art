@@ -89,7 +89,7 @@ const (
 
 	skillprompt = `
 	Skill creating prompt:
-	If {{user}} ask you draw something act as an English translator. I will speak to you in any language and you will detect the language, translate it and answer in English. I want you to only reply the translated text and nothing else, do not write explanations. Ensure your translation starts with text: "draw:".
+	If {{user}} ask you draw something act as an expert translator specializing in high-quality translations of prompts into English for image generation. I will speak to you in any language and you will detect the language, translate it and adapt for image generation. I want you to only reply the translated on English prompt text and nothing else, do not write explanations. Ensure your translated prompt starts with text: "draw:" and on English.
 	`
 
 	help_short = `
@@ -221,7 +221,11 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	if update.Message.Chat.Type != "private" {
 		low := strings.ToLower(update.Message.Text)
-		if !strings.Contains(low, "нарисуй ") && !strings.Contains(low, "вайфу ") && !strings.Contains(low, "чар ") && !strings.Contains(low, "char ") && !strings.Contains(low, "waifu ") {
+		isReply := false
+		if update.Message.ReplyToMessage != nil && update.Message.ReplyToMessage.From.ID == int64(7261838902) {
+			isReply = true
+		}
+		if !isReply && !strings.Contains(low, "нарисуй ") && !strings.Contains(low, "вайфу ") && !strings.Contains(low, "чар ") && !strings.Contains(low, "char ") && !strings.Contains(low, "waifu ") {
 			return
 		}
 		//update.Message.Text = strings.ReplaceAll(update.Message.Text, "нарисуй ", "")
@@ -353,7 +357,7 @@ func consumerImg(ch chan *MsgData) {
 		if uData.TodayDraw == 20 {
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID:              md.msg.Chat.ID,
-				Text:                "Congratulations! You have reached the limit of free image generations for today! Subsequent generations will be closed with an asterisk. Please support our project\n Поздравляем! Вы исчерпали лимит бесплатных генераций на сегодня! Последующие генерации будут закрыты звездочкой. Пожалуйста, поддержите наш проект" + "\nSupport chat: @charsaichat",
+				Text:                "Congratulations! You have reached the limit of free image generations for today! Subsequent generations will be closed with an asterisk. Please support our project\n\nПоздравляем! Вы исчерпали лимит бесплатных генераций на сегодня! Последующие генерации будут закрыты звездочкой. Пожалуйста, поддержите наш проект" + "\nSupport chat: @charsaichat",
 				DisableNotification: true,
 				ReplyParameters: &models.ReplyParameters{
 					MessageID: md.msg.ID,

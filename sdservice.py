@@ -20,7 +20,7 @@ MODEL_PATH = "recoilme/recoilme-sdxl-v11"
 
 #wd3 tagger
 # Specific model repository from SmilingWolf's collection / Repository Default vit tagger v3
-VIT_MODEL_DSV3_REPO = "SmilingWolf/wd-vit-large-tagger-v3"#"SmilingWolf/wd-vit-tagger-v3"
+VIT_MODEL_DSV3_REPO = "SmilingWolf/wd-vit-tagger-v3"#"SmilingWolf/wd-vit-large-tagger-v3"
 MODEL_FILENAME = "model.onnx"
 LABEL_FILENAME = "selected_tags.csv"
 
@@ -67,7 +67,7 @@ def prepare_image(image, target_size):
     padded_image.paste(image, (pad_left, pad_top))
 
     # Resize
-    padded_image = padded_image.resize((target_size, target_size), Image.BICUBIC)
+    padded_image = padded_image.resize((target_size, target_size))
 
     # Convert to numpy array
     image_array = np.asarray(padded_image, dtype=np.float32)[..., [2, 1, 0]]
@@ -83,16 +83,17 @@ def process_predictions_with_thresholds(preds, tag_data, character_thresh, gener
     character_tags = [tag_data.names[i] for i in tag_data.character if scores[i] >= character_thresh]
     general_tags = [(tag_data.names[i], scores[i]) for i in tag_data.general if scores[i] >= general_thresh]
     general_tags = sorted(general_tags, key=lambda x: x[1], reverse=True)
+    general_tags = [key for key, value in general_tags]
 
     rating_tags = [(tag_data.names[i], scores[i]) for i in tag_data.rating if scores[i] >= rating_thresh]
     rating_tags = sorted(rating_tags, key=lambda x: x[1], reverse=True)
     rating_tags = [key for key, value in rating_tags]
         
     # Sort tags based on user preference / Mengurutkan tags berdasarkan keinginan pengguna
-    final_tags = []
-    final_tags = [key for key, value in general_tags]
-    final_tags.extend([key for key, value in character_tags])
-    return rating_tags, final_tags
+    #final_tags = []
+    #final_tags = [key for key, value in general_tags]
+    #final_tags.extend([key for key, value in character_tags])
+    return rating_tags, general_tags
 
 def captions(image):
     character_thresh=0.85
@@ -126,7 +127,7 @@ pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config, timestep_spacing="trailing"
 )
 pipe.enable_vae_slicing()
-pipe.enable_model_cpu_offload()
+#pipe.enable_model_cpu_offload()
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
