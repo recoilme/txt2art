@@ -16,7 +16,7 @@ from datetime import datetime
 import time
 
 #MODEL_PATH = "/home/recoilme/forge/models/Stable-diffusion/recoilme-sdxl-v09.fp16.safetensors"
-MODEL_PATH = "recoilme/recoilme-sdxl-v11"
+MODEL_PATH = "recoilme/recoilme-sdxl-v13"
 
 #wd3 tagger
 # Specific model repository from SmilingWolf's collection / Repository Default vit tagger v3
@@ -48,10 +48,11 @@ def load_model_and_tags(model_repo):
     )
     model = rt.InferenceSession(model_path)
     target_size = model.get_inputs()[0].shape[2]
-    
+    print("wdtagger loaded")
     return model, tag_data, target_size
 
 model, tag_data, target_size = load_model_and_tags(VIT_MODEL_DSV3_REPO)
+
 
 # Image preprocessing function / Memproses gambar
 def prepare_image(image, target_size):
@@ -321,7 +322,7 @@ def txt2img(prompt1,prompt2):
 
         if has_minors and has_porn:
             images.clear()
-        print("clear", len(images))
+        #print("clear", len(images))
         del prompt_embeds, prompt_neg_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
         gc.collect()
         
@@ -371,11 +372,12 @@ def run_server(port):
     images,pron = txt2img(text,"")
     print("len",len(images))
     if len(images)>0:
-        images[0].save(datetime.now().strftime("pron/start_%Y-%m-%d_%H:%M:%S")+'1.jpg')
+        images[0].save(datetime.now().strftime("pron2/start_%Y-%m-%d_%H:%M:%S")+'1.jpg')
+    print("starting")
     server_address = ('', port)
     httpd = HTTPServer(server_address, RequestHandler)
-    print('Сервер запущен на порту', port)
+    print('Started', port)
     httpd.serve_forever()
 
 if __name__ == '__main__':
-    run_server(8882)  # замените 8080 на свой порт
+    run_server(8881)  # замените 8080 на свой порт
