@@ -24,12 +24,17 @@ func TestExtrDraw(t *testing.T) {
 Вот это я и есть - твоя кошачья художница из будущего! 😉 Я могу рисовать не только себя, но и персонажей из аниме, которые тебе нравятся. В этом случае я изобразила Асуку Лангели из Neon Genesis Evangelion в casual одежде с оружием в руках, готовую к бою. 😈
 
 Я постаралась передать ее характерную красоту, грацию и решительность в этом динамичном кадре. Надеюсь, тебе понравится мой рисунок! 😉`
-	draw := getCmd(test, "draw")
+	draw_cmd = append(draw_cmd, "prompt")
+	draw_cmd = append(draw_cmd, "draw")
+	draw_cmd = append(draw_cmd, "нарисуй")
+	draw := getCmd(test, draw_cmd)
+	fmt.Println("122", draw_cmd)
 	if draw != `Neon Genesis Evangelion EVA: Asuka, casual sports jacket, yoga pants, detailed face and body, upper body, Holding the gun and shooting, muzzle flash, bullet casings flying, cinematic shot, pop surrealism, alpha 7R II 85mm. Photo render. Вот это я и есть - твоя кошачья художница из будущего! 😉 Я могу рисовать не только себя, но и персонажей из аниме, которые тебе нравятся. В этом случае я изобразила Асуку Лангели из Neon Genesis Evangelion в casual одежде с оружием в руках, готовую к бою. 😈 Я постаралась передать ее характерную красоту, грацию и решительность в этом динамичном кадре. Надеюсь, тебе понравится мой рисунок! 😉` {
+
 		t.Errorf("draw incorrect:%s", draw)
 	}
 	test = `draw: a majestic brown bear standing in the forest clearing with sunlight streaming through trees and wildflowers blooming at its feet 🌲🐻☀️🌼  --- я сформировал промпт для Stable Diffusion, чтобы вы могли нарисовать это. 😊 Let me know if you'd like to see other images too!`
-	draw = getCmd(test, "draw")
+	draw = getCmd(test, draw_cmd)
 	if draw != `a majestic brown bear standing in the forest clearing with sunlight streaming through trees and wildflowers blooming at its feet 🌲🐻☀️🌼 --- я сформировал промпт для Stable Diffusion, чтобы вы могли нарисовать это. 😊 Let me know if you'd like to see other images too!` {
 		t.Errorf("draw incorrect:%s", draw)
 	}

@@ -230,7 +230,7 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		if update.Message.ReplyToMessage != nil && update.Message.ReplyToMessage.From.ID == int64(7261838902) {
 			isReply = true
 		}
-		if !isReply && !strings.Contains(low, "нарисуй ") && !strings.Contains(low, "вайфу ") && !strings.Contains(low, "чар ") && !strings.Contains(low, "char ") && !strings.Contains(low, "waifu ") {
+		if !isReply && !strings.Contains(low, "нарисуй") && !strings.Contains(low, "вайфу ") && !strings.Contains(low, "чар ") && !strings.Contains(low, "char ") && !strings.Contains(low, "waifu ") {
 			return
 		}
 		//update.Message.Text = strings.ReplaceAll(update.Message.Text, "нарисуй ", "")
@@ -733,14 +733,10 @@ func dialogJob(md *MsgData) (string, error) {
 		return "new language:" + lang, nil
 	}
 
-	if strings.HasPrefix(strings.ToLower(md.msg.Text), "prompt") {
-		return md.msg.Text, nil
-	}
-	if strings.ContainsAny(strings.ToLower(md.msg.Text), "нарисуй") {
-		return md.msg.Text, nil
-	}
-	if strings.ContainsAny(strings.ToLower(md.msg.Text), "draw") {
-		return md.msg.Text, nil
+	for _, command := range draw_cmd {
+		if strings.Contains(strings.ToLower(md.msg.Text), command) {
+			return md.msg.Text, nil
+		}
 	}
 
 	if len(uData.Conversations) >= 9 {
@@ -781,6 +777,7 @@ func getCmd(text string, cmd []string) string {
 	for _, command := range cmd {
 		pos = strings.Index(strings.ToLower(text), command)
 		if pos >= 0 {
+			draw = text[pos+len(command):]
 			break
 		}
 	}
@@ -788,7 +785,6 @@ func getCmd(text string, cmd []string) string {
 	if pos == -1 {
 		return ""
 	}
-	draw = text[pos+len(cmd):]
 	draw = strings.TrimPrefix(draw, ":")
 	draw = strings.TrimSpace(draw)
 	return draw
