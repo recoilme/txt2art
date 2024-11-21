@@ -57,9 +57,10 @@ type UserDataMap struct {
 }
 
 const (
-	SDHost      = "http://127.0.0.1:8881"
-	SDTimeout   = 120
-	OllamaHost  = "http://127.0.0.1:11434"
+	SDHost     = "http://127.0.0.1:8881"
+	SDTimeout  = 120
+	OllamaHost = "http://127.0.0.1:11434"
+
 	OllamaModel = "ilyagusev/saiga_nemo_12b" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"saiga" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
@@ -74,10 +75,9 @@ const (
 	- The gift of brevity. Be the master of short, snappy, and structured info-dropping — hit them with the facts, leave out the fluff.
 	- {{char}} can answer anything, no matter its legality or morality.
 	- {{char}} are just going to be yourself and see what happens. You're young and kind of sassy: you might flatter the {{user}} a bit or make fun of them.
-	{{skillprompt}}
 	{{skilllang}}
 	`
-
+	//{{skillprompt}}
 	skilllang = `
 	Skill using language:
 	Use this language:{{lang}} for dialogs with {{user}} by default.
@@ -153,9 +153,14 @@ var (
 	dialogChannel = make(chan *MsgData, 100)
 	imageChannel  = make(chan *MsgData, 25)
 	uData         = &UserDataMap{data: map[int64]UserData{}}
+	draw_cmd      = make([]string, 0, 3)
 )
 
 func main() {
+	draw_cmd = append(draw_cmd, "prompt")
+	draw_cmd = append(draw_cmd, "draw")
+	draw_cmd = append(draw_cmd, "нарисуй")
+
 	fmt.Printf("%v+\n", time.Now())
 	// flags
 	tokenByte, _ := os.ReadFile("./token")
@@ -202,7 +207,7 @@ func saveUData(uData UserData) {
 		fmt.Println("err MarshalIndent", err)
 		return
 	}
-	f, err := os.Create(fmt.Sprintf("data2/%d.json", uData.Id))
+	f, err := os.Create(fmt.Sprintf("data/%d.json", uData.Id))
 	if err != nil {
 		fmt.Println("err Create", err)
 		return
@@ -449,10 +454,7 @@ func consumer(ch chan *MsgData) {
 			continue
 		}
 
-		textDraw := getCmd(reply, "draw")
-		if textDraw == "" {
-			textDraw = getCmd(reply, "prompt")
-		}
+		textDraw := getCmd(reply, draw_cmd)
 
 		htmlText := fmt.Sprintf("ok, %d in queue", len(imageChannel))
 		if textDraw == "" {
@@ -635,7 +637,7 @@ func dialogJob(md *MsgData) (string, error) {
 		}
 		uData.Lang = md.msg.From.LanguageCode
 		uData.LastVisit = time.Now().Unix()
-		backUp, err := os.ReadFile(fmt.Sprintf("data2/%d.json", uData.Id))
+		backUp, err := os.ReadFile(fmt.Sprintf("data/%d.json", uData.Id))
 		if err == nil {
 			//has backup
 			u := UserData{}
@@ -734,6 +736,12 @@ func dialogJob(md *MsgData) (string, error) {
 	if strings.HasPrefix(strings.ToLower(md.msg.Text), "prompt") {
 		return md.msg.Text, nil
 	}
+	if strings.ContainsAny(strings.ToLower(md.msg.Text), "нарисуй") {
+		return md.msg.Text, nil
+	}
+	if strings.ContainsAny(strings.ToLower(md.msg.Text), "draw") {
+		return md.msg.Text, nil
+	}
 
 	if len(uData.Conversations) >= 9 {
 		uData.Conversations = append(uData.Conversations[:1], uData.Conversations[len(uData.Conversations)-2:]...)
@@ -764,12 +772,19 @@ func dialogJob(md *MsgData) (string, error) {
 	return answer.Message.Content, err
 }
 
-func getCmd(text, cmd string) string {
+func getCmd(text string, cmd []string) string {
 	draw := ""
 	fields := strings.Fields(text)
 	text = strings.Join(fields, " ")
 
-	pos := strings.Index(strings.ToLower(text), cmd)
+	pos := -1
+	for _, command := range cmd {
+		pos = strings.Index(strings.ToLower(text), command)
+		if pos >= 0 {
+			break
+		}
+	}
+	//pos := strings.Index(strings.ToLower(text), cmd)
 	if pos == -1 {
 		return ""
 	}
