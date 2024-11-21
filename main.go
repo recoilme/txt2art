@@ -83,8 +83,8 @@ const (
 	Use this language:{{lang}} for dialogs with {{user}} by default.
 	`
 	detailed_prompt = `
-	Given a user prompt, generate an "Enhanced prompt", on English language, that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
-	evaluations. Ensure your prompt is on English. User Prompt:%s
+	Given a user prompt, translate it on English language and generate an "Enhanced prompt", that provides detailed visual descriptions suitable for image generation. Refine and enhance the existing details slightly, without overcomplicating. Please generate only the enhanced description for the prompt below and avoid including any additional commentary or
+	evaluations. Ensure your prompt is on English language. User Prompt:%s
 	`
 
 	skillprompt = `
