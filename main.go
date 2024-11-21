@@ -314,7 +314,7 @@ func consumerImg(ch chan *MsgData) {
 		}
 		if len([]rune(textEn)) > textEnMax {
 			//fmt.Println("[]rune(textEn)) > textEnMax ", len([]rune(textEn)))
-			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textEn))
+			textEn, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description on English:%s", textEn))
 			if err != nil {
 				sendErr(md, err)
 				continue
@@ -332,7 +332,7 @@ func consumerImg(ch chan *MsgData) {
 			continue
 		}
 		if len([]rune(textPrompt)) > (1000 - textEnMax) {
-			textPrompt, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description:%s", textPrompt))
+			textPrompt, err = simpleJob(fmt.Sprintf("Skip the introduction and summarize this text in short description on English:%s", textPrompt))
 			if err != nil {
 				sendErr(md, err)
 				continue
