@@ -128,7 +128,7 @@ pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
     pipe.scheduler.config, timestep_spacing="trailing"
 )
 pipe.enable_vae_slicing()
-#pipe.enable_model_cpu_offload()
+pipe.enable_model_cpu_offload()
 ## Compile the UNet and VAE.
 #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
 #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
@@ -247,7 +247,7 @@ def txt2img(prompt1,prompt2):
         generator.manual_seed(int(time.time()))
 
         training_refiner_strength = 0.35
-        num_inference_steps = 46
+        num_inference_steps = 32#46
         base_model_power = 1 - training_refiner_strength
         
         images = pipe(
@@ -258,48 +258,48 @@ def txt2img(prompt1,prompt2):
             negative_prompt_embeds=prompt_neg_embeds,
             negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
             num_inference_steps=num_inference_steps,
-            denoising_end=base_model_power,
+            #denoising_end=base_model_power,
             guidance_scale=4.5,
             pag_scale=0.8,
             generator=generator,
             num_images_per_prompt=1,
-            output_type="latent"
+            #output_type="latent"
         ).images
 
-        images = img2img_pipe(
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            negative_prompt_embeds=prompt_neg_embeds,
-            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=num_inference_steps,
-            denoising_start=base_model_power,
-            guidance_scale=2.6,
-            pag_scale=1.4,
-            image=images,
-            output_type="latent"
-        ).images
+        #images = img2img_pipe(
+        #    prompt_embeds=prompt_embeds,
+        #    pooled_prompt_embeds=pooled_prompt_embeds,
+        #    negative_prompt_embeds=prompt_neg_embeds,
+        #    negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        #    num_inference_steps=num_inference_steps,
+        #    denoising_start=base_model_power,
+        #    guidance_scale=2.6,
+        #    pag_scale=1.4,
+        #    image=images,
+        #    output_type="latent"
+        #).images
         
         has_porn = False    
-        if len(images)>0:
-            for i in range(1):
-                # upscale *1.25
-                images = bislerp(images,150,190)
+        #if len(images)>0:
+        #    for i in range(1):
+        #        # upscale *1.25
+        #        images = bislerp(images,150,190)#
 
                 # restore / add details
-                images = img2img_pipe(
-                    strength=0.5,#0.12, # strength original image
-                    prompt_embeds=prompt_embeds,
-                    pooled_prompt_embeds=pooled_prompt_embeds,
-                    negative_prompt_embeds=prompt_neg_embeds,
-                    negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                    num_inference_steps=32,#110,#13 steps, total steps * strength
-                    guidance_scale=2.6,
-                    pag_scale=1.4,
-                    guidance_rescale=0.0,
-                    #generator=generator,
-                    num_images_per_prompt=len(images),
-                    image=images,
-                ).images
+        #        images = img2img_pipe(
+        #            strength=0.5,#0.12, # strength original image
+        #            prompt_embeds=prompt_embeds,
+        #            pooled_prompt_embeds=pooled_prompt_embeds,
+        #            negative_prompt_embeds=prompt_neg_embeds,
+        #            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        #            num_inference_steps=num_inference_steps,#32,#110,#13 steps, total steps * strength
+        #            guidance_scale=2.6,
+        #            pag_scale=1.4,
+        #            guidance_rescale=0.0,
+        #            #generator=generator,
+        #            num_images_per_prompt=len(images),
+        #            image=images,
+        #        ).images
 
         has_minors = False
         if "young" in (prompt1+prompt2):
@@ -380,4 +380,4 @@ def run_server(port):
     httpd.serve_forever()
 
 if __name__ == '__main__':
-    run_server(8881)  # замените 8080 на свой порт
+    run_server(8887)  # замените 8080 на свой порт

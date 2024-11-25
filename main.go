@@ -57,11 +57,11 @@ type UserDataMap struct {
 }
 
 const (
-	SDHost     = "http://127.0.0.1:8881"
+	SDHost     = "http://127.0.0.1:8887"
 	SDTimeout  = 120
 	OllamaHost = "http://127.0.0.1:11434"
 
-	OllamaModel = "ilyagusev/saiga_nemo_12b" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"saiga" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "recoilme/recoilme-gemma2-9b-v0.5-q8_0.gguf"//"ilyagusev/saiga_nemo_12b" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"saiga" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
 	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.
@@ -575,7 +575,7 @@ func simpleJob(text string) (string, error) {
 		Model:  OllamaModel,
 		Prompt: text,
 		Options: llm.Options{
-			Temperature:   0.5,
+			Temperature:   0.4,
 			RepeatLastN:   768, //64
 			RepeatPenalty: 5.0, //1.1
 		},
@@ -746,9 +746,10 @@ func dialogJob(md *MsgData) (string, error) {
 	uData.Conversations = append(uData.Conversations, llm.Message{Role: "user", Content: md.msg.Text})
 
 	options := llm.Options{
-		Temperature:   0.5, //0.8
-		RepeatLastN:   768, //64
+		Temperature:   0.2, //0.8
+		RepeatLastN:   2, //64
 		RepeatPenalty: 5.0, //1.1
+        NumPredict: 128,
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
