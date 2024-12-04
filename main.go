@@ -439,7 +439,7 @@ func consumerImg(ch chan *MsgData) {
 
 		_, err = md.b.SendMediaGroup(md.ctx, params)
 		if err != nil {
-			fmt.Printf("SendMediaGroup: %+v\n", err)
+			//fmt.Printf("SendMediaGroup: %+v\n", err)
 		}
 	}
 }
