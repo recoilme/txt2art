@@ -61,7 +61,7 @@ const (
 	SDTimeout  = 120
 	OllamaHost = "http://127.0.0.1:11434"
 
-	OllamaModel = "recoilme/recoilme-gemma2-9b-v0.5-q8_0.gguf"//"ilyagusev/saiga_nemo_12b" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"saiga" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
+	OllamaModel = "recoilme/recoilme-gemma2-9b-v0.5-q8_0.gguf" //"ilyagusev/saiga_nemo_12b" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"saiga" //""qwen2.5-coder:32b-base-q4_0" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"rscr/ruadapt_qwen2.5_32b:Q4_K_M" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q6_k" //"gemma-2-ataraxy-gemmasutra-9b-slerp-q4_k_m" //"VikhrGemma" //"Gemmasutra-9B-v1c-Q4_K_M"
 	minors      = `Gently reminder: generating or attempting to generate NSFW or inappropriate content that includes minors is a serious offense, and might cause a permanent ban from our platform.
 	
 	Вежливое напоминание: Создание или попытка создания NSFW или ненадлежащего контента, включающего несовершеннолетних, является серьезным правонарушением и может привести к постоянному запрету на нашей платформе.
@@ -359,7 +359,7 @@ func consumerImg(ch chan *MsgData) {
 			paid = true
 		}
 		uData := userDataGet(md.msg.ReplyToMessage.From.ID)
-		if uData.TodayDraw == 20 {
+		if uData.TodayDraw == 50 {
 			md.b.SendMessage(md.ctx, &bot.SendMessageParams{
 				ChatID:              md.msg.Chat.ID,
 				Text:                "Congratulations! You have reached the limit of free image generations for today! Subsequent generations will be closed with an asterisk. Please support our project\n\nПоздравляем! Вы исчерпали лимит бесплатных генераций на сегодня! Последующие генерации будут закрыты звездочкой. Пожалуйста, поддержите наш проект" + "\nSupport chat: @charsaichat",
@@ -370,7 +370,7 @@ func consumerImg(ch chan *MsgData) {
 				},
 			})
 		}
-		if uData.TodayDraw > 20 {
+		if uData.TodayDraw > 50 {
 			paid = true
 		}
 		if statusCode == 204 {
@@ -444,7 +444,7 @@ func consumer(ch chan *MsgData) {
 	for {
 		md := <-ch
 		if md == nil {
-			fmt.Println("consumer nill msg")
+			//fmt.Println("consumer nill msg")
 			sendErr(md, errors.New("consumer nill msg "))
 			continue
 		}
@@ -483,7 +483,7 @@ func consumer(ch chan *MsgData) {
 
 		if textDraw != "" {
 			replMsg.Text = textDraw
-			fmt.Println("draw", md.msg.From.ID, md.msg.From.Username, time.Now().Format(time.RFC822), truncateString(reply, 100)+"\n")
+			//fmt.Println("draw", md.msg.From.ID, md.msg.From.Username, time.Now().Format(time.RFC822), truncateString(reply, 100)+"\n")
 
 			uData := userDataGet(md.msg.From.ID)
 			lastVisitDay := time.Unix(uData.LastVisit, 0).Format("20060102")
@@ -627,7 +627,7 @@ func dialogJob(md *MsgData) (string, error) {
 	from := md.msg.From.ID
 	uData := userDataGet(from)
 	defer userDataSet(from, &uData)
-	fmt.Println(md.msg.From.ID, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 100)+"\n")
+	//fmt.Println(md.msg.From.ID, time.Now().Format(time.RFC822), truncateString(md.msg.Text, 100)+"\n")
 	if uData.Id == 0 {
 		//new user
 		uData.Id = from
@@ -747,9 +747,9 @@ func dialogJob(md *MsgData) (string, error) {
 
 	options := llm.Options{
 		Temperature:   0.2, //0.8
-		RepeatLastN:   2, //64
+		RepeatLastN:   2,   //64
 		RepeatPenalty: 5.0, //1.1
-        NumPredict: 128,
+		NumPredict:    128,
 		//	NumPredict:    -2,          //128
 		//	TopK:          100,         //40
 		//	TopP:          0.95,        //0.9
