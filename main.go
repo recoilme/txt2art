@@ -343,7 +343,7 @@ func consumerImg(ch chan *MsgData) {
 		textPrompt = strings.ReplaceAll(textPrompt, "**:**", "")
 
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
-		textEn = fmt.Sprintf("(%s)\n", textEn)
+		textEn = fmt.Sprintf("%s\n", textEn)
 
 		if strings.HasPrefix(textEn, "prompt: ") {
 			textEn = textEn[8:]
