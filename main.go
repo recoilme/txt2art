@@ -345,6 +345,11 @@ func consumerImg(ch chan *MsgData) {
 		textPrompt = truncateString(textPrompt, (1000 - textEnMax))
 		textEn = fmt.Sprintf("(%s)\n", textEn)
 
+		if strings.HasPrefix(textEn, "prompt: ") {
+			textEn = textEn[8:]
+			textPrompt = ""
+		}
+
 		imgData, statusCode, err := imageGet(textEn, textPrompt)
 		if err != nil {
 			sendErr(md, err)
@@ -779,6 +784,9 @@ func getCmd(text string, cmd []string) string {
 		pos = strings.Index(strings.ToLower(text), command)
 		if pos >= 0 {
 			draw = text[pos+len(command):]
+			if command == "prompt" {
+				draw = "prompt: " + draw
+			}
 			break
 		}
 	}
